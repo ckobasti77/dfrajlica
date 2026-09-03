@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Float, useGLTF } from "@react-three/drei";
+import { Environment, Float, Lightformer, MeshTransmissionMaterial, useGLTF } from "@react-three/drei";
+import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 /* ------------------------------------------------------------------ */
 /*  Tuning knobs (integrator: adjust here, nothing else needs to move) */
@@ -15,126 +15,211 @@ export const MODEL_URL = "/models/leaf-cluster.glb";
 export const DRACO_PATH = "/models/draco/";
 
 /**
- * Blown-glass plum material. Reference: docs/design-references/leaf-reference.png -
- * plump, cupped magenta glass, bright specular streaks, slightly darker translucent core.
+ * Blown-glass plum. Reference: docs/design-references/leaf-reference.png -
+ * deep magenta body, much darker plum where the light path through the glass is
+ * long (rim + core), long white specular streaks, soft internal translucency.
+ *
+ * The look is 3 things working together and none of them alone:
+ *   - transmission 1 + a short attenuation distance -> the dark rim/core,
+ *   - roughness ~0.05 + clearcoat -> the crisp streaks,
+ *   - the Lightformer studio below -> what those streaks are a reflection *of*.
  */
 export const MATERIAL = {
-  color: "#B23A8E", // body tint. Darker (#8B1E6E) reads as opaque plastic - transmission multiplies by this colour
-  transmission: 0.72, // 0 = opaque plastic, 1 = clear glass
-  thickness: 0.9, // volume depth used by refraction/attenuation
-  roughness: 0.1, // keep low: crisp specular streaks
+  samples: 6,
+  resolution: 512,
+  transmission: 1,
+  thickness: 3.4,
+  roughness: 0.05,
+  ior: 1.5,
+  chromaticAberration: 0.05,
+  anisotropy: 0.15,
+  distortion: 0.08,
+  distortionScale: 0.4,
+  temporalDistortion: 0.1,
+  color: "#DE72B7",
+  attenuationColor: "#7A1B63",
+  attenuationDistance: 4.6,
   clearcoat: 1,
   clearcoatRoughness: 0.06,
-  ior: 1.5,
-  attenuationColor: "#7A1B63", // colour picked up while light travels through the glass -> darker core/rims
-  attenuationDistance: 0.6, // shorter = denser, darker core
-  envMapIntensity: 1.6,
-  /** FrontSide by default; DoubleSide made no visible difference in the standalone check. */
-  side: THREE.FrontSide as THREE.Side,
+  envMapIntensity: 2.0,
+  backside: true,
+  backsideThickness: 1.0,
 } as const;
 
 /**
- * Where the two sprigs sit, in normalised wrapper coordinates:
- * x/y in [-0.5, 0.5] of the canvas (0,0 = centre of the wrapper, +y up).
- * Values below assume the photo card occupies ~80% of the wrapper width/height (see CARD_FRACTION);
- * if the wrapper padding differs, scale x/y accordingly (card edge = +-0.5 * CARD_FRACTION).
- * `span` = fraction of the CARD width the sprig should cover.
+ * What the glass shows *through* itself. MeshTransmissionMaterial samples the scene
+ * into an FBO, and this canvas is transparent - so without an explicit backdrop the
+ * glass refracts the black clear colour and every leaf renders near-black.
+ */
+export const TRANSMISSION_BACKDROP = "#FFF7FB";
+
+/**
+ * The GLB carries each vertex's own half-thickness (relative to the thickest point of
+ * the biggest leaf) in UV.x - see the generator in docs/design. Feeding a 1-D green
+ * ramp in as `thicknessMap` turns that into real Beer's-law attenuation that follows
+ * the geometry: the plump core absorbs, the thin flanks stay luminous. Without it
+ * `thickness` is one constant for the whole leaf and the glass reads as flat colour.
+ */
+function makeThicknessRamp(): THREE.DataTexture {
+  const n = 256;
+  const data = new Uint8Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    const v = Math.round((i / (n - 1)) * 255);
+    data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = v; // .g is the channel three reads
+    data[i * 4 + 3] = 255;
+  }
+  const tex = new THREE.DataTexture(data, n, 1, THREE.RGBAFormat);
+  tex.minFilter = tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/**
+ * Where the sprigs sit, in **card**-normalised coordinates: x/y in [-0.5, 0.5],
+ * so +-0.5 is exactly a photo-card edge and (-0.5, 0.5) is the top-left corner.
+ * `span` = fraction of the card width the sprig should cover.
+ * Values below were measured off docs/design-references/hero.png.
  */
 export type SprigPlacement = {
   x: number;
   y: number;
   z: number;
-  /** Euler rotation [x, y, z] in radians, applied after the model is stood upright. */
+  /** Euler rotation [x, y, z] in radians. The GLB is already upright and facing +Z. */
   rotation: [number, number, number];
   span: number;
-  /** Per-instance float phase so the two sprigs never move in lockstep. */
+  /** Per-instance float phase so the sprigs never move in lockstep. */
   floatSpeed: number;
+  /**
+   * Transmission FBO size for this sprig. Each MeshTransmissionMaterial re-renders the
+   * whole scene into this buffer twice per frame (backside + main), so the two small
+   * sprigs run at half resolution - at ~150px on screen it is not visible.
+   */
+  resolution?: number;
 };
 
 export const POSITIONS: SprigPlacement[] = [
-  // top-left corner of the photo card (card edges are at +-0.5 * CARD_FRACTION)
-  { x: -0.36, y: 0.31, z: 0.3, rotation: [0.25, -0.45, -0.5], span: 0.34, floatSpeed: 1.2 },
-  // bottom-right corner
-  { x: 0.37, y: -0.33, z: 0.3, rotation: [0.2, 0.4, -0.7], span: 0.38, floatSpeed: 1.05 },
-  // small sprig at the bottom-left corner (as in hero.png)
-  { x: -0.33, y: -0.34, z: 0.2, rotation: [0.15, -0.3, 0.9], span: 0.26, floatSpeed: 0.95 },
+  // top-left corner. The model's three leaves sit at 124/58/5 degrees with the stem
+  // running down-left; rolling it +55 degrees puts them at 179/113/60 with the stem
+  // pointing down - the V-plus-one-low-leaf that hero.png shows in this corner.
+  // (Mirroring it with rotation.y ~ PI instead turns the leaf backs to the camera and
+  // reads noticeably flatter than the other two sprigs.)
+  { x: -0.54, y: 0.36, z: 0.35, rotation: [0.1, 0.28, 0.96], span: 0.32, floatSpeed: 1.2, resolution: 256 },
+  // bottom-right corner - the hero sprig, closest to the camera
+  { x: 0.46, y: -0.45, z: 0.45, rotation: [0.06, 0.26, 0.16], span: 0.34, floatSpeed: 1.05 },
+  // bottom-left corner
+  { x: -0.46, y: -0.41, z: 0.15, rotation: [0.12, -0.3, 0.55], span: 0.29, floatSpeed: 0.95, resolution: 256 },
 ];
 
-/** Assumed ratio: photo-card width / wrapper (canvas) width. Used to convert `span` into world units. */
-export const CARD_FRACTION = 0.7; // Hero.tsx wrapper = card (520x650) + 120px padding on every side
+/**
+ * photo-card size / wrapper (canvas) size. Measured from the DOM by HeroLeaves so the
+ * corners stay correct at any breakpoint; these are only the lg defaults
+ * (Hero.tsx: card 520x650 inside a wrapper padded by 120px on every side).
+ */
+export const CARD_FRACTION: CardFraction = { x: 520 / 760, y: 650 / 890 };
+export type CardFraction = { x: number; y: number };
 
-/** Mouse parallax: max tilt of the whole scene, radians (6 deg). */
-export const PARALLAX_MAX = 0.105;
-export const TONE_MAPPING_EXPOSURE = 1.0;
+/**
+ * Base tone of the baked studio cubemap. This must stay DARK: it is what the glass
+ * reflects everywhere the Lightformers do not cover. A light base puts a flat neutral
+ * specular wash over the whole leaf, which desaturates the plum to grey and turns the
+ * Fresnel rim pale - the opposite of the reference, where the rim is the darkest part.
+ */
+export const ENV_BASE = "#1C0517";
+
+/** Mouse parallax: max tilt of the whole scene, radians (5 deg). */
+export const PARALLAX_MAX = 0.087;
+export const TONE_MAPPING_EXPOSURE = 1.15;
 
 /* ------------------------------------------------------------------ */
 
 useGLTF.preload(MODEL_URL, DRACO_PATH);
 
-/** Model is authored lying in the XZ plane, pointing along -Z. Stand it up so it faces the camera. */
-const UPRIGHT_X = Math.PI / 2;
+type SprigProps = { placement: SprigPlacement; source: THREE.Group; card: CardFraction };
 
-function useGlassMaterial(): THREE.MeshPhysicalMaterial {
-  const material = useMemo(() => {
-    const m = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(MATERIAL.color),
-      transmission: MATERIAL.transmission,
-      thickness: MATERIAL.thickness,
-      roughness: MATERIAL.roughness,
-      clearcoat: MATERIAL.clearcoat,
-      clearcoatRoughness: MATERIAL.clearcoatRoughness,
-      ior: MATERIAL.ior,
-      attenuationColor: new THREE.Color(MATERIAL.attenuationColor),
-      attenuationDistance: MATERIAL.attenuationDistance,
-      envMapIntensity: MATERIAL.envMapIntensity,
-      side: MATERIAL.side,
-    });
-    return m;
-  }, []);
-  useEffect(() => () => material.dispose(), [material]);
-  return material;
-}
+/** Shared so the backdrop colour and ramp are allocated once, not once per sprig. */
+const backdrop = new THREE.Color(TRANSMISSION_BACKDROP);
+const thicknessRamp = makeThicknessRamp();
 
-type SprigProps = { placement: SprigPlacement; source: THREE.Group; material: THREE.Material };
-
-function Sprig({ placement, source, material }: SprigProps) {
+function Sprig({ placement, source, card }: SprigProps) {
   const viewport = useThree((s) => s.viewport);
 
-  const { object, length } = useMemo(() => {
-    const clone = source.clone(true);
-    clone.traverse((node) => {
+  const { geometry, length } = useMemo(() => {
+    // Merge every mesh of the sprig into one geometry: MeshTransmissionMaterial
+    // renders a per-mesh backside pass, so one mesh instead of four is ~4x cheaper.
+    const parts: THREE.BufferGeometry[] = [];
+    source.updateWorldMatrix(true, true);
+    source.traverse((node) => {
       const mesh = node as THREE.Mesh;
-      if (mesh.isMesh) mesh.material = material;
+      if (!mesh.isMesh) return;
+      const g = mesh.geometry.clone();
+      g.applyMatrix4(mesh.matrixWorld);
+      // keep position + normal + uv (uv carries the baked thickness); drop the rest so
+      // the merge cannot fail on mismatched attributes
+      for (const name of Object.keys(g.attributes)) {
+        if (name !== "position" && name !== "normal" && name !== "uv") g.deleteAttribute(name);
+      }
+      parts.push(g.index ? g.toNonIndexed() : g);
     });
-    const box = new THREE.Box3().setFromObject(clone);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    // Centre the cluster on its bounding-box centre so it rotates/floats about itself.
-    clone.position.copy(center).negate();
-    return { object: clone, length: Math.max(size.x, size.y, size.z) || 1 };
-  }, [source, material]);
 
-  const targetWidth = viewport.width * CARD_FRACTION * placement.span;
-  const scale = targetWidth / length;
+    const total = parts.reduce((n, g) => n + g.getAttribute("position").count, 0);
+    const position = new Float32Array(total * 3);
+    const normal = new Float32Array(total * 3);
+    const uv = new Float32Array(total * 2);
+    let offset = 0;
+    for (const g of parts) {
+      const count = g.getAttribute("position").count;
+      position.set(g.getAttribute("position").array as Float32Array, offset * 3);
+      normal.set(g.getAttribute("normal").array as Float32Array, offset * 3);
+      const src = g.getAttribute("uv");
+      if (src) uv.set(src.array as Float32Array, offset * 2);
+      offset += count;
+      g.dispose();
+    }
+    const merged = new THREE.BufferGeometry();
+    merged.setAttribute("position", new THREE.BufferAttribute(position, 3));
+    merged.setAttribute("normal", new THREE.BufferAttribute(normal, 3));
+    merged.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    merged.computeBoundingBox();
+
+    const box = merged.boundingBox!;
+    const size = box.getSize(new THREE.Vector3());
+    // Centre on the bounding-box centre so the sprig floats/rotates about itself.
+    const centre = box.getCenter(new THREE.Vector3());
+    merged.translate(-centre.x, -centre.y, -centre.z);
+    return { geometry: merged, length: Math.max(size.x, size.y) || 1 };
+  }, [source]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  const scale = (viewport.width * card.x * placement.span) / length;
 
   return (
-    <Float speed={placement.floatSpeed} rotationIntensity={0.35} floatIntensity={0.6}>
-      <group
-        position={[placement.x * viewport.width, placement.y * viewport.height, placement.z]}
+    <Float speed={placement.floatSpeed} rotationIntensity={0.3} floatIntensity={0.5}>
+      <mesh
+        geometry={geometry}
+        position={[
+          placement.x * viewport.width * card.x,
+          placement.y * viewport.height * card.y,
+          placement.z,
+        ]}
+        renderOrder={placement.z > 0.3 ? 1 : 0}
         rotation={placement.rotation}
         scale={scale}
       >
-        <group rotation={[UPRIGHT_X, 0, 0]}>
-          <primitive object={object} />
-        </group>
-      </group>
+        <MeshTransmissionMaterial
+          {...MATERIAL}
+          resolution={placement.resolution ?? MATERIAL.resolution}
+          background={backdrop}
+          thicknessMap={thicknessRamp}
+        />
+      </mesh>
     </Float>
   );
 }
 
-function Sprigs({ onReady }: { onReady: () => void }) {
+function Sprigs({ onReady, card }: { onReady: () => void; card: CardFraction }) {
   const { scene } = useGLTF(MODEL_URL, DRACO_PATH);
-  const material = useGlassMaterial();
 
   useEffect(() => {
     onReady();
@@ -143,29 +228,68 @@ function Sprigs({ onReady }: { onReady: () => void }) {
   return (
     <>
       {POSITIONS.map((placement, i) => (
-        <Sprig key={i} placement={placement} source={scene} material={material} />
+        <Sprig key={i} placement={placement} source={scene} card={card} />
       ))}
     </>
   );
 }
 
-/** Procedural studio reflections (no HDR download). */
-function StudioEnvironment() {
-  const get = useThree((s) => s.get);
-  useEffect(() => {
-    const { gl, scene } = get();
-    const pmrem = new THREE.PMREMGenerator(gl);
-    const room = new RoomEnvironment();
-    const target = pmrem.fromScene(room, 0.04);
-    scene.environment = target.texture;
-    scene.background = null;
-    return () => {
-      scene.environment = null;
-      target.dispose();
-      pmrem.dispose();
-    };
-  }, [get]);
-  return null;
+/**
+ * Custom studio, baked once. These four lightformers *are* the reference look:
+ * the vertical strip on the right is the long white streak down each leaf, the
+ * big soft rect above-left is the broad sheen, the ring gives the rim.
+ */
+function Studio() {
+  return (
+    <Environment resolution={256} frames={1} background={false}>
+      {/* base tone of the virtual scene the cubemap is baked from - a dark base here
+          turns the glass black, which is exactly what happens with the default. */}
+      <color attach="background" args={[ENV_BASE]} />
+      {/* broad dim dome front and back: stops any part of the leaf reading as a
+          hole. Without it the dark base bands hard against the bright strips. */}
+      <Lightformer intensity={0.16} form="rect" scale={[14, 14, 1]} position={[0, 0, 8]} color="#FBEFF7" />
+      <Lightformer intensity={0.1} form="rect" scale={[14, 14, 1]} position={[0, 0, -8]} rotation={[0, Math.PI, 0]} color="#E7B9D6" />
+      {/* large soft key above-left -> broad sheen along the upper edge */}
+      <Lightformer
+        intensity={4}
+        form="rect"
+        scale={[6, 3, 1]}
+        position={[-4, 5, 2]}
+        rotation={[-Math.PI / 3, 0, 0]}
+        color="#ffffff"
+      />
+      {/* thin bright vertical strip on the right -> the long specular streak */}
+      <Lightformer
+        intensity={22}
+        form="rect"
+        scale={[1.2, 6, 1]}
+        position={[4.5, 0.5, 2]}
+        rotation={[0, -Math.PI / 2.6, 0]}
+        color="#ffffff"
+      />
+      {/* second, narrower strip from the left so both leaf flanks get a streak */}
+      <Lightformer
+        intensity={15}
+        form="rect"
+        scale={[0.8, 5, 1]}
+        position={[-4, 1, 1.5]}
+        rotation={[0, Math.PI / 2.6, 0]}
+        color="#ffffff"
+      />
+      {/* warm pink fill from below -> keeps the shadow side from going black */}
+      <Lightformer
+        intensity={1.8}
+        form="rect"
+        scale={[6, 3, 1]}
+        position={[0, -4, 2]}
+        rotation={[Math.PI / 2.6, 0, 0]}
+        color="#F3D3E6"
+      />
+      {/* narrow bar behind the camera -> the bright rim that reads as polished glass.
+          A ring here reflects as a visible oval blob on the flatter leaf faces. */}
+      <Lightformer intensity={2.2} form="rect" scale={[0.7, 3.5, 1]} position={[1.2, 1.4, 6]} rotation={[0, 0, -0.5]} color="#ffffff" />
+    </Environment>
+  );
 }
 
 /** Whole-scene tilt that eases toward the pointer (the canvas itself is pointer-events: none). */
@@ -206,15 +330,18 @@ export type LeafSceneProps = {
   active: boolean;
   /** Fired once the GLB is decoded and the first frame can be drawn. */
   onReady: () => void;
+  /** photo card size / canvas size, measured from the DOM by HeroLeaves. */
+  card?: CardFraction;
 };
 
-export default function LeafScene({ active, onReady }: LeafSceneProps) {
+export default function LeafScene({ active, onReady, card = CARD_FRACTION }: LeafSceneProps) {
   return (
     <Canvas
       className="h-full w-full"
       style={{ background: "transparent" }}
       gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
       dpr={[1, 1.5]}
+      resize={{ offsetSize: true }}
       camera={{ fov: 35, position: [0, 0, 9], near: 0.1, far: 50 }}
       frameloop={active ? "always" : "demand"}
       shadows={false}
@@ -224,17 +351,13 @@ export default function LeafScene({ active, onReady }: LeafSceneProps) {
         gl.setClearColor(0x000000, 0);
       }}
     >
-      <StudioEnvironment />
-      <ambientLight intensity={0.4} />
-      {/* warm key from top-left */}
-      <directionalLight position={[-4, 6, 5]} intensity={2.5} color="#FFF4EA" />
-      {/* cool rim from behind / top-right */}
-      <directionalLight position={[4, 3, -4]} intensity={1.5} color="#EAF2FF" />
-      {/* plum-tinted fill from below */}
-      <pointLight position={[0, -2, 3]} intensity={1.5} distance={12} decay={2} color="#C98BB8" />
+      <Studio />
       <ParallaxRig>
-        <Sprigs onReady={onReady} />
+        <Sprigs onReady={onReady} card={card} />
       </ParallaxRig>
+      <EffectComposer enableNormalPass={false}>
+        <Bloom intensity={0.5} luminanceThreshold={0.8} mipmapBlur />
+      </EffectComposer>
     </Canvas>
   );
 }

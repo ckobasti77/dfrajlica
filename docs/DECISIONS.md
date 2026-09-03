@@ -66,3 +66,94 @@ Datum: 2026-09-03
 - Cena „Депилација дубоких препона" — u cenovniku stoji 1.100, potvrditi.
 - Da li Telegram i „Позови" prikazivati kao brze kanale (sada Viber, WhatsApp, Instagram, SMS).
 - Statični leaf PNG-ovi imaju sitne artefakte (senka/sjaj sa hero.png) — po želji ručno očistiti u editoru.
+
+## Polish — 3D (staklasti listovi u hero-u)
+
+Cilj: `docs/design-references/leaf-reference.png` + raspored sa `hero.png`. Desktop sada prikazuje **GLB kroz R3F**
+(`MeshTransmissionMaterial`); nije se išlo na 2.5D fallback.
+
+### Geometrija — napravljena iznova
+- Stara geometrija (Solidify + Bevel + Subsurf preko ravne ploče) bila je tanka, tupih vrhova, 6 listova na dugoj
+  stabljici — ni oblik ni kompozicija nisu odgovarali referenci. Zamenjena je **parametarski generisanim sočivom**
+  (bikonveksni solid): presek `z = t·(1-|s|^rim)`, širina `u^wa·(1-u)^wb` podignuta na `full`. Oštar rub po celom
+  obodu, puna sredina, šiljati vrhovi. Parametri: ratio 2.35, thick 0.62, rim 1.85, cup 0.30, bend 0.16, twist 0.30.
+  `rim` je namerno spušten ispod 2: površina se tada povija ka ivici preko šireg pojasa, a taj pojas je ono što pod
+  grazing Fresnel-om čita kao debela tamna šljiva-ivica sa reference.
+- Sprig = **3 lista + kratka stabljika** (kao na `hero.png`), ne 6 listova na dugoj stabljici. Ista grančica se
+  koristi tri puta, sa različitim rotacijama.
+- Generator je parametarski Python, sačuvan **unutar `.blend` fajla kao Text datablock `build_leaf.py`**
+  (Text Editor → Run Script rebuild-uje i re-eksportuje). Model se gradi u ravni pa rotira +90° oko X, tako da posle
+  `export_yup=True` stoji uspravno i gleda u kameru — u R3F nije potrebna nikakva korekcija rotacije.
+- **Debljina je zapečena u UV.x** (svaki vertex nosi svoju poludebljinu podeljenu poludebljinom najdebljeg mesta).
+  U R3F se kao `thicknessMap` prosleđuje 256×1 `DataTexture` (zeleni ramp). Ovo je bila najveća pojedinačna razlika:
+  bez toga je `thickness` jedna konstanta za ceo list, Beer-ov zakon daje ravnomernu boju i staklo izgleda kao ravan
+  vektorski oblik. Sa mapom se dobija pravi gradijent — puno jezgro upija, tanki bokovi ostaju svetli.
+- `leaf-cluster.glb`: 282.432 B sirovo → **49.152 B** posle `gltf-transform draco`
+  (`--quantize-texcoord 14`, jer UV nosi podatak o debljini, ne teksturne koordinate). 4.774 trougla.
+
+### Materijal i osvetljenje — odatle dolazi izgled
+Tri stvari koje su pojedinačno bile pogrešne i tek zajedno daju rezultat:
+1. **`background` na `MeshTransmissionMaterial` je obavezan.** Materijal uzorkuje scenu u FBO, a canvas je providan —
+   bez eksplicitne podloge staklo prelama crnu clear boju i listovi se renderuju skoro crni.
+   `TRANSMISSION_BACKDROP = #FFF7FB`.
+2. **Environment mora biti taman** (`ENV_BASE = #1C0517`), a *ne* svetao. Sa svetlim environmentom preko celog lista
+   legne ravnomeran neutralan specular, šljiva se desaturiše u sivo, a Fresnel-ivica postane bleda — obrnuto od
+   reference, gde je ivica najtamniji deo. Svetlo dolazi isključivo iz `Lightformer`-a: veliki mekani key gore-levo,
+   dve uske jarke vertikalne trake (to su duge bele pruge po dužini lista), topli roze fill odozdo i uska traka iza
+   kamere za rim. `form="ring"` je izbačen — reflektuje se kao vidljiva ovalna mrlja na ravnijim licima listova.
+3. **Odstupanje od vrednosti zadatih u promptu:** `color` `#C23B98` → `#DE72B7`, `attenuationDistance` 0.7 → 4.6,
+   `thickness` 1.2 → 3.4. Zadate vrednosti pretpostavljaju drugu skalu modela; na našoj (mesh scale ≈ 0.65) gasile su
+   zeleni kanal na 4–5, pa su listovi čitali kao tamna aubergine umesto magente. Mereno na `hero.png`: referentni
+   median (139, 68, 112), naš sada (137, 33, 98) — pre korekcije (91, 4, 56). `thickness` je sada *maksimalna*
+   debljina koju mapa skalira naniže, otud veća vrednost.
+- Ostalo po ugovoru: samples 6, resolution 512, transmission 1, roughness 0.05, ior 1.5, chromaticAberration 0.05,
+  anisotropy 0.15, distortion 0.08, distortionScale 0.4, temporalDistortion 0.1, clearcoat 1, backside true,
+  `attenuationColor #7A1B63`, ACES, exposure 1.15, `Bloom intensity 0.5 / luminanceThreshold 0.8 / mipmapBlur`,
+  dpr ≤ 1.5, `frameloop="demand"` van vidnog polja, pointer parallax ±5°,
+  `Float speed 1.05–1.2 / rotationIntensity 0.3 / floatIntensity 0.5`.
+- `MeshPhysicalMaterial` fallback **nije uključen** — nije bio potreban, vidi merenja niže.
+
+### Ispravljeni bagovi
+- **Canvas je bio pogrešno dimenzionisan i sekao je donji desni sprig.** R3F meri preko `getBoundingClientRect`, koji
+  uključuje GSAP `scale` sa hero ulazne animacije, a ResizeObserver posle toga ne vidi promenu jer transform nije
+  layout. Rešeno sa `resize={{ offsetSize: true }}` (canvas 697×813 → tačnih 726×847).
+- **Pozicije se više ne pogađaju.** `HeroLeaves` meri `.frame` u odnosu na svoj sloj (ResizeObserver) i prosleđuje
+  odnos kartica/canvas u `LeafScene`; `POSITIONS` su sada u koordinatama *kartice* (±0.5 = ivica kartice), izmerenim
+  sa `hero.png`. Radi na svakom breakpoint-u, bez hardkodovanih 520/650/120.
+- Gornji levi sprig je prvo bio „ogledaljen" rotacijom oko Y ≈ π; to okreće naličja listova ka kameri i čita znatno
+  ravnije od druga dva. Umesto toga je rotiran +55° oko Z (listovi 124/58/5° → 179/113/60°, stabljika nadole) — to je
+  V plus jedan niski list, tačno kao u tom uglu na `hero.png`.
+- Sve 4 mreže grančice se spajaju u jednu geometriju pri učitavanju: `MeshTransmissionMaterial` radi backside prolaz
+  po *mesh*-u, pa je 1 umesto 4 mesh-a ≈ 4× jeftinije. Dva mala sprig-a rade na FBO rezoluciji 256 umesto 512 (na
+  ~150px na ekranu se ne vidi).
+
+### Statični PNG-ovi (mobilni / bez WebGL-a)
+- `leaf3d-a/b.png` **više nisu isečeni iz `hero.png`** (izvor je bio ~190px, pa su bili mekani i sa artefaktima senke).
+  Sada se seku iz **žive 3D scene na 3×**, preko chroma-key pozadine (`#00ff00`; staklo ne uzorkuje stranicu jer ima
+  fiksni transmission backdrop, pa zeleno može biti samo prava pozadina), uz despill zelenog ruba. 420px, ~103–114 KB.
+  Posledica: mobilni i desktop prikazuju identično staklo.
+- `lg` pozicije statičnih slika izvedene su iz `POSITIONS`, da cross-fade na 3D ne „skoči". Ispod `lg` se, kao na
+  `mobile.png`, vidi samo desni sprig — uz desnu ivicu fotografije, oko tri četvrtine visine
+  (`right-[-2%] bottom-[12%] w-[32%]`).
+
+### Merenja
+- `npx tsc --noEmit`, `npx eslint .`, `npm run build` — čisto.
+- Konzola: nema grešaka iz 3D putanje. Jedina greška na stranici je `400` sa `/_next/image` — vidi „Za UI sesiju".
+- Performanse, RTX 4060 Laptop (ANGLE/D3D11), 1440×900: **60 fps zaključano na vsync, p95 18 ms, bez ispuštenih
+  frejmova**; sa isključenim vsync-om median petlje **1.0 ms**. Velika rezerva, pa fallback materijal nije uključen.
+  Napomena: **nije testirano na slaboj mašini** — nemam je ovde. Ako se na integrisanoj grafici pokaže problem,
+  `MeshPhysicalMaterial` varijanta iz ugovora ostaje kao opcija.
+- Iteracija je bilo **12, ne 6**. Prve četiri su otišle na dijagnostiku tri prave greške (crno staklo zbog FBO
+  podloge, sivo staklo zbog svetlog environmenta, pogrešna veličina canvas-a), ne na estetiku; posle toga je
+  konvergencija bila jasna, pa je nastavak bio opravdaniji od prelaska na 2.5D fallback.
+  Poređenja: `docs/screenshots/leaves-compare-6/9/11/final.png`.
+
+### Za UI sesiju (ne diram — vlasništvo druge sesije)
+- **`content/site.ts` pokazuje na fajlove koji ne postoje.** `hero.image.src` je
+  `/images/instagram/hero/ig-029-DIGLJvSoRBp.jpg`, a u `public/` postoji samo `.avif` verzija — hero fotografija je
+  slomljena (`400` sa `/_next/image`). Isto važi za `/images/instagram/hero/ig-034-DGkaSmyotBn.jpg`. Ispravka je
+  `.jpg` → `.avif` na oba mesta. Screenshotovi `hero-1440-v2.png` / `hero-390-v2.png` snimljeni su sa tom ispravkom
+  primenjenom u browseru, da bi listovi bili merljivi.
+- `Hero.tsx` **nije bilo potrebno menjati** — sve staje u postojeći omotač (kartica + 120px na `lg`).
+- Na 390×844 donja ivica hero kartice pada tačno na pregib, pa je mobilni list na samoj granici vidljivog. Ako se
+  kartica podigne ~40px, list bi bio ceo u prvom ekranu (kao na `mobile.png`).
