@@ -1,0 +1,205 @@
+@import "tailwindcss";
+
+@theme {
+  --color-plum-700: #7a1b63;
+  --color-plum-500: #9b2c82;
+  --color-plum-300: #c98bb8;
+  --color-plum-100: #f3e4ee;
+  --color-paper: #f7f2ec;
+  --color-ink: #2b1a26;
+  --color-mocha: #5b2e2a;
+  --color-white: #ffffff;
+
+  --font-serif: var(--font-playfair), "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-manrope), Manrope, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-card: 20px;
+  --radius-photo: 28px;
+  --radius-pill: 999px;
+
+  --shadow-plum: 0 20px 50px -20px rgb(122 27 99 / 0.25);
+  --shadow-plum-lg: 0 30px 70px -24px rgb(122 27 99 / 0.35);
+  --shadow-soft: 0 10px 30px -18px rgb(43 26 38 / 0.18);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-power3: cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+/* ---------- Base ---------- */
+
+html {
+  scroll-behavior: auto; /* lenis handles smooth scroll */
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.6;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+@media (max-width: 1023px) {
+  body {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+::selection {
+  background: var(--color-plum-100);
+  color: var(--color-plum-700);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-plum-500);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+[id] {
+  scroll-margin-top: 84px;
+}
+
+@layer base {
+  img,
+  picture,
+  video {
+    display: block;
+    max-width: 100%;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+/* ---------- Type scale ---------- */
+
+.h1 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(44px, 7vw, 96px);
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+}
+
+.h2 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(36px, 4vw, 56px);
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+}
+
+.h3 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(20px, 2vw, 24px);
+  line-height: 1.25;
+}
+
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* ---------- Layout utilities ---------- */
+
+.container-x {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: clamp(20px, 4vw, 40px);
+}
+
+.section-y {
+  padding-block: 64px;
+}
+
+@media (min-width: 1024px) {
+  .section-y {
+    padding-block: 96px;
+  }
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Paper grain: SVG noise, no external file */
+.paper-grain {
+  position: relative;
+  isolation: isolate;
+}
+.paper-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.18 0 0 0 0 0.16 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+/* Dotted leaders for price rows */
+.leaders {
+  flex: 1 1 auto;
+  min-width: 20px;
+  margin-inline: 0.55em;
+  align-self: flex-end;
+  height: 0.7em;
+  border-bottom: 2px dotted currentColor;
+  opacity: 0.38;
+}
+
+/* Photo frames keep their ratio to avoid CLS */
+.frame {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-plum-100);
+}
+.frame > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Hero title lines: masked reveal container */
+.line-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+
+/* ---------- Motion safety ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

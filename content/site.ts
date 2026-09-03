@@ -1,0 +1,289 @@
+/**
+ * Јединствен извор истине за сав садржај сајта.
+ * Све на ћирилици. Подаци потичу из docs/brand-brief.md (Instagram, 011info, sredime).
+ * Ако нешто мењаш — мењај овде, не у компонентама.
+ */
+
+export const site = {
+  name: "Д фрајлица",
+  nameLatin: "D frajlica",
+  tagline: "Козметички салон · Земун",
+  description:
+    "Козметички салон Д фрајлица у Земуну — маникир, педикир, гел лак, изливање ноктију, ламинација трепавица и обрва, депилација, третмани лица и спреј тен. Заказивање: 069 889 3550.",
+  url: "https://dfrajlica.rs",
+  locale: "sr-Cyrl-RS",
+  address: {
+    street: "Бачка 68а",
+    city: "Земун",
+    postal: "11080",
+    country: "Србија",
+    full: "Бачка 68а, 11080 Земун, Београд",
+    mapsUrl: "https://maps.google.com/?q=Bačka+68a+Zemun+Beograd",
+    transport: "Аутобуси 15 и 78",
+  },
+  phone: {
+    /** Главни број — Viber/WhatsApp/Telegram/SMS/позив */
+    primary: { display: "069 889 3550", e164: "+381698893550", tel: "tel:+381698893550" },
+    landline: { display: "011 316 3738", e164: "+381113163738", tel: "tel:+381113163738" },
+  },
+  social: {
+    instagram: { handle: "@kozmeticki_salon_zemun", url: "https://www.instagram.com/kozmeticki_salon_zemun/" },
+    facebook: { handle: "Dfrajlica", url: "https://www.facebook.com/Dfrajlica/" },
+  },
+  /**
+   * ⚠️ Радно време по данима НИЈЕ потврђено (од јануара 2026: „3 дана поподне, 2 дана преподне, свака друга субота").
+   * До потврде клијента приказујемо само оквир и „уз заказивање".
+   */
+  hours: {
+    confirmed: false,
+    summary: "Радимо уз заказивање, радним данима и сваке друге суботе.",
+    note: "Термин потврђујемо поруком или позивом.",
+  },
+  team: [
+    { name: "Бранка", role: "Власница · козметичар", note: "10+ година искуства" },
+    { name: "Јана", role: "Маникир и нокти" },
+  ],
+} as const;
+
+export const nav = [
+  { label: "Услуге", href: "#usluge" },
+  { label: "Ценовник", href: "#cenovnik" },
+  { label: "Галерија", href: "#galerija" },
+  { label: "Контакт", href: "#kontakt" },
+] as const;
+
+export const hero = {
+  eyebrow: "Козметички салон · Земун",
+  title: ["Мали рај за", "лепоту"],
+  subtitle: "Маникир · Педикир · Трепавице · Депилација · Третмани лица",
+  intro:
+    "Место где се свака дама осећа као права фрајлица. Више од десет година неге, пажње и лепих ноктију у срцу Земуна.",
+  ctaPrimary: "Закажи термин",
+  ctaSecondary: "Ценовник",
+  image: {
+    src: "/images/instagram/hero/ig-029-DIGLJvSoRBp.jpg",
+    alt: "Нежни бадемасти нокти у боји коже са шљокицама на розе пешкиру",
+  },
+} as const;
+
+export const trust = [
+  { icon: "heart", text: "10+ година искуства" },
+  { icon: "pin", text: "Бачка 68а, Земун" },
+  { icon: "card", text: "Картице прихваћене" },
+] as const;
+
+export const servicesMeta = {
+  title: "Услуге",
+} as const;
+
+export type ServiceId = "manikir" | "pedikir" | "trepavice" | "depilacija" | "lice" | "sprej-tan";
+
+export const services: {
+  id: ServiceId;
+  title: string;
+  short: string;
+  image: string;
+  alt: string;
+}[] = [
+  {
+    id: "manikir",
+    title: "Маникир",
+    short: "Гел лак, изливање, корекција, dual tipse и poly gel — сваки нокат у боји коју желите.",
+    image: "/images/instagram/manikir/ig-043-DDXTCY3oTkj.jpg",
+    alt: "Црвени бадемасти нокти",
+  },
+  {
+    id: "pedikir",
+    title: "Педикир",
+    short: "Естетски, медицински или са гел лаком. Нега за стопала која се и види и осећа.",
+    image: "/images/instagram/pedikir/ig-002-CPdbt0CJxsn.jpg",
+    alt: "Педикир са црним гел лаком",
+  },
+  {
+    id: "trepavice",
+    title: "Трепавице и обрве",
+    short: "Ламинација (lash lift), фарбање и корекција — природан поглед који траје недељама.",
+    image: "/images/instagram/trepavice_obrve/ig-094-C4ixedMNdTs.jpg",
+    alt: "Ламинација трепавица и обрва",
+  },
+  {
+    id: "depilacija",
+    title: "Депилација",
+    short: "Топли восак, од наусница до целих ногу. Брзо, хигијенски и пажљиво.",
+    image: "/images/instagram/hero/ig-034-DGkaSmyotBn.jpg",
+    alt: "Негована кожа руку",
+  },
+  {
+    id: "lice",
+    title: "Третмани лица",
+    short: "Хигијенски третман, воћне киселине и микронидлинг — за кожу која блиста.",
+    image: "/images/instagram/trepavice_obrve/ig-106-C2hsXLXNvkw.jpg",
+    alt: "Третман лица",
+  },
+  {
+    id: "sprej-tan",
+    title: "Спреј тен",
+    short: "Бронзани тен без сунца — за свадбу, матуру или прославу. Без оштећења коже.",
+    image: "/images/instagram/sprej_tan/ig-031-DHvnnmxoHUF.jpg",
+    alt: "Спреј тен",
+  },
+];
+
+export type PriceRow = { name: string; price: number | [number, number] | string; note?: string };
+export type PriceGroup = { id: ServiceId | "obrve"; title: string; columns?: [string, string]; rows: PriceRow[]; footnote?: string };
+
+/** Ценовник важи од 1. 2. 2026. Цене у RSD. Маникир: [Јана, Бранка]. */
+export const priceList: PriceGroup[] = [
+  {
+    id: "manikir",
+    title: "Маникир",
+    columns: ["Јана", "Бранка"],
+    rows: [
+      { name: "Маникир", price: [1700, 1900] },
+      { name: "Гел лак", price: [2500, 2700] },
+      { name: "Корекција ноктију S", price: [2500, 2700] },
+      { name: "Корекција ноктију M", price: [2700, 2900] },
+      { name: "Корекција ноктију L", price: [2900, 3100] },
+      { name: "Корекција ноктију XL", price: "— / 3.500" },
+      { name: "Изливање S", price: [3200, 3500] },
+      { name: "Изливање M", price: [3400, 3700] },
+      { name: "Изливање L", price: [3600, 3900] },
+      { name: "Изливање XL", price: "— / 4.200" },
+      { name: "Корекција туђег рада", price: "+300" },
+      { name: "Скидање гела", price: 1500 },
+    ],
+    footnote: "Уколико се на корекцији излива више од два нокта, наплаћује се цена изливања.",
+  },
+  {
+    id: "pedikir",
+    title: "Педикир",
+    rows: [
+      { name: "Полупедикир", price: 1700 },
+      { name: "Естетски педикир", price: 2500 },
+      { name: "Педикир са гел лаком", price: 2900 },
+      { name: "Медицински педикир", price: 3000 },
+    ],
+  },
+  {
+    id: "depilacija",
+    title: "Депилација",
+    rows: [
+      { name: "Наусница", price: 400 },
+      { name: "Корекција обрва", price: 500 },
+      { name: "Лице", price: 1000 },
+      { name: "Пазух", price: 700 },
+      { name: "Руке", price: 1000 },
+      { name: "Пола руку", price: 700 },
+      { name: "Ноге", price: 1300 },
+      { name: "Ноге са препонама", price: 1500 },
+      { name: "Пола ногу", price: 900 },
+      { name: "Пола ногу са препонама", price: 1200 },
+      { name: "Плитке препоне", price: 900 },
+      { name: "Дубоке препоне", price: 1100 },
+      { name: "Интимна регија", price: 1400 },
+      { name: "Руке, ноге и интимна регија", price: 3300 },
+    ],
+  },
+  {
+    id: "obrve",
+    title: "Обрве и трепавице",
+    rows: [
+      { name: "Фарбање и корекција обрва", price: 600 },
+      { name: "Фарбање обрва", price: 300 },
+      { name: "Ламинација обрва", price: 2500 },
+      { name: "Ламинација трепавица (lash lift)", price: 2500 },
+      { name: "Ламинација обрва и трепавица", price: 4000 },
+    ],
+  },
+  {
+    id: "lice",
+    title: "Третмани лица и тела",
+    rows: [
+      { name: "Хигијенски третман", price: 2800 },
+      { name: "Воћне киселине", price: 1800 },
+      { name: "Микронидлинг", price: 5000 },
+      { name: "Спреј тен", price: 2000 },
+    ],
+  },
+];
+
+export const priceMeta = {
+  title: "Ценовник",
+  note: "Цене су у динарима. Важи од 1. 2. 2026.",
+  packages: "Пакети услуга — број термина је ограничен, потребно је заказати.",
+} as const;
+
+export const gallery = {
+  title: "Галерија",
+  subtitle: "Радови из салона. За нове — пратите нас на Инстаграму.",
+  images: [
+    { src: "/images/instagram/manikir/ig-043-DDXTCY3oTkj.jpg", alt: "Црвени бадемасти нокти" },
+    { src: "/images/instagram/manikir/ig-046-DDKjjotoKwZ.jpg", alt: "Златни хром нокти" },
+    { src: "/images/instagram/manikir/ig-083-C5WcZgAsHRS.jpg", alt: "Лила нокти" },
+    { src: "/images/instagram/manikir/ig-014-DUI02LxiN-l.jpg", alt: "Француски маникир" },
+    { src: "/images/instagram/manikir/ig-057-C_vblTEoecy.jpg", alt: "Црни нокти са текстуром" },
+    { src: "/images/instagram/manikir/ig-099-C3iKH37oi_T.jpg", alt: "Бордо нокти" },
+    { src: "/images/instagram/manikir/ig-026-DI_SNQaIU4-.jpg", alt: "Хром нокти уз љиљан" },
+    { src: "/images/instagram/manikir/ig-076-C6zH80EsJ8A.jpg", alt: "Розе нокти са срцима" },
+    { src: "/images/instagram/manikir/ig-071-C708EaLsYx1.jpg", alt: "Зелени нокти са тачкама" },
+    { src: "/images/instagram/manikir/ig-097-C4BZsSesra2.jpg", alt: "Наранџасти нокти" },
+    { src: "/images/instagram/manikir/ig-082-C5feGTRMH06.jpg", alt: "Омбре нокти" },
+    { src: "/images/instagram/manikir/ig-101-C3VTImmIIQt.jpg", alt: "Француски маникир са срцима" },
+  ],
+} as const;
+
+export const booking = {
+  title: "Закажите свој термин",
+  subtitle: "Пишите нам или позовите — потврђујемо термин у најкраћем року.",
+  channelsLabel: "Инстаграм · Вибер · WhatsApp · Позив",
+  sheet: {
+    title: "Заказивање термина",
+    intro: "Изаберите услугу и канал — порука је већ написана, само пошаљите.",
+    serviceLabel: "Услуга",
+    whenLabel: "Кад вам одговара? (необавезно)",
+    whenPlaceholder: "нпр. уторак поподне",
+    send: "Пошаљи преко",
+    message: (service: string, when?: string) =>
+      `Здраво! Желим да закажем термин за: ${service}.${when ? ` Одговара ми ${when}.` : ""} Хвала!`,
+  },
+  channels: [
+    { id: "viber", label: "Вибер", build: (msg: string) => `viber://chat?number=%2B381698893550&text=${encodeURIComponent(msg)}` },
+    { id: "whatsapp", label: "WhatsApp", build: (msg: string) => `https://wa.me/381698893550?text=${encodeURIComponent(msg)}` },
+    { id: "telegram", label: "Телеграм", build: (msg: string) => `https://t.me/+381698893550?text=${encodeURIComponent(msg)}` },
+    { id: "instagram", label: "Инстаграм", build: () => `https://ig.me/m/kozmeticki_salon_zemun` },
+    { id: "sms", label: "SMS", build: (msg: string) => `sms:+381698893550?body=${encodeURIComponent(msg)}` },
+    { id: "call", label: "Позови", build: () => `tel:+381698893550` },
+  ],
+} as const;
+
+export const footer = {
+  copyright: `© ${new Date().getFullYear()} Д фрајлица`,
+  madeWith: "Земун · Србија",
+} as const;
+
+/** Кратки UI натписи (aria ознаке, дугмад, помоћни текст). */
+export const ui = {
+  menuOpen: "Отвори мени",
+  menuClose: "Затвори мени",
+  mainNav: "Главна навигација",
+  mobileNav: "Мени",
+  skipToContent: "Пређи на садржај",
+  close: "Затвори",
+  previous: "Претходна",
+  next: "Следећа",
+  imageOf: (i: number, n: number) => `Слика ${i} од ${n}`,
+  servicesTitle: servicesMeta.title,
+  moreOnInstagram: "Још радова на Инстаграму",
+  openGallery: "Увећај слику",
+  priceColumnService: "Услуга",
+  priceColumnPrice: "Цена",
+  callUs: "Позовите нас",
+  orWrite: "или нам пишите",
+  quickMessage: "Здраво! Желим да закажем термин. Хвала!",
+  address: "Адреса",
+  phones: "Телефони",
+  hours: "Радно време",
+  social: "Друштвене мреже",
+  openInMaps: "Отвори у мапама",
+  homeLink: "Д фрајлица — почетна",
+} as const;
