@@ -75,7 +75,8 @@ Three steps in one card, framer-motion between steps (slide 24px + fade, 0.35s, 
 - Playwright e2e against `next dev` + Convex dev: pick service → day → slot → submit → appears in admin as pending → confirm → the slot disappears from the client picker (reactive) → decline another → slot returns. Screenshots at 390 and 1440 into `docs/screenshots/booking-v2-*.png`.
 - Race test: fire two `bookings.request` for the same slot concurrently (script) → exactly one succeeds.
 - `npx tsc --noEmit`, `npx eslint .`, `npm run build` clean; Cyrillic grep for new strings.
-- Report in Serbian: schema, what the owner must do first in admin (set hours), env vars, screenshots, open decisions. Do not deploy.
+- Deploy: `git add -A && git commit -m "booking v2: slots, availability engine, admin schedule"`, `git push origin main` (Vercel builds), then `npx convex deploy` (answer Yes; prod deployment is `fortunate-deer-607`). After deploy, verify on https://dfrajlica.vercel.app: pick a slot and submit a test request, confirm it appears in `/admin` on production, then decline it. If the production form errors with a Convex URL/auth problem, report the exact error — the Vercel env `NEXT_PUBLIC_CONVEX_URL` must equal `https://fortunate-deer-607.eu-west-1.convex.cloud`.
+- Report in Serbian: schema, what the owner must do first in admin (set hours), env vars, screenshots, open decisions, and the production test result.
 
 END PROMPT
 ```
