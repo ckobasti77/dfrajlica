@@ -145,7 +145,7 @@ export default function Header() {
             aria-label={strings.homeLink}
           >
             <Image
-              src="/logos/logo-wide.avif"
+              src="/logos/logo-wide.png"
               alt={site.name}
               width={1200}
               height={270}
@@ -217,7 +217,7 @@ export default function Header() {
                       className="flex items-center rounded-md"
                       aria-label={strings.homeLink}
                     >
-                      <Image src="/logos/logo-wide.avif" alt={site.name} width={1200} height={270} sizes="160px" className="h-9 w-auto" />
+                      <Image src="/logos/logo-wide.png" alt={site.name} width={1200} height={270} sizes="160px" className="h-9 w-auto" />
                     </a>
                     <button
                       type="button"

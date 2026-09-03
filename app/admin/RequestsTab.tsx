@@ -56,7 +56,7 @@ export default function RequestsTab({ adminKey }: { adminKey: string }) {
                     {staffName(b.staffKey)} · {formatDayLong(b.date)} · <span className="tabular-nums">{bookingTime(b)}</span>
                   </p>
                 </div>
-                <p className="text-[12px] text-ink/50">
+                <p className="text-[12px] text-ink/70">
                   {t.requests.received} {new Date(b.createdAt).toLocaleString("sr-Latn-RS", { dateStyle: "short", timeStyle: "short" })}
                   {b.source === "admin" ? ` · ${t.requests.source.admin}` : ""}
                 </p>
@@ -71,7 +71,7 @@ export default function RequestsTab({ adminKey }: { adminKey: string }) {
               </div>
               {b.note ? (
                 <p className="mt-2 rounded-xl bg-paper/70 px-3 py-2 text-[14px] text-ink/80">
-                  <span className="text-ink/50">{t.requests.note}: </span>
+                  <span className="text-ink/70">{t.requests.note}: </span>
                   {b.note}
                 </p>
               ) : null}

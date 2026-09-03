@@ -46,7 +46,7 @@ export default function ServiceStep({ serviceKey, staffKey, durations, onService
                     className={chipClass(isSel, "h-auto min-h-11 flex-col items-start gap-0 rounded-2xl px-4 py-2 text-left")}
                   >
                     <span className="leading-tight">{s.title}</span>
-                    <span className={`text-[12.5px] font-normal tabular-nums ${isSel ? "text-white/80" : "text-ink/55"}`}>
+                    <span className={`text-[12.5px] font-normal tabular-nums ${isSel ? "text-white/80" : "text-ink/70"}`}>
                       {serviceMeta(s, durations)}
                     </span>
                   </button>

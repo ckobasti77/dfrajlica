@@ -1,7 +1,7 @@
 /** Shared class strings for the booking wizard (client + admin reuse a few). */
 
 export const inputClass =
-  "h-12 w-full rounded-xl border border-plum-300/50 bg-white px-4 text-ink placeholder:text-ink/40 outline-none transition-shadow duration-200 focus:ring-2 focus:ring-plum-500 aria-[invalid=true]:border-plum-700";
+  "h-12 w-full rounded-xl border border-plum-300/50 bg-white px-4 text-ink placeholder:text-ink/70 outline-none transition-shadow duration-200 focus:ring-2 focus:ring-plum-500 aria-[invalid=true]:border-plum-700";
 
 export const labelClass = "mb-1.5 block text-sm font-medium text-ink";
 

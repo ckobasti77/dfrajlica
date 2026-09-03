@@ -15,7 +15,7 @@ export type SummaryData = {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-2.5">
-      <dt className="shrink-0 text-[13px] font-medium uppercase tracking-[0.1em] text-ink/50">{label}</dt>
+      <dt className="shrink-0 text-[13px] font-medium uppercase tracking-[0.1em] text-ink/70">{label}</dt>
       <dd className="text-right text-[15px] font-medium text-ink">{value}</dd>
     </div>
   );
@@ -29,17 +29,17 @@ export function SummaryCard({ data, children }: { data: SummaryData; children?: 
       {data.service ? (
         <>
           <p className="mt-2 font-serif text-[22px] leading-tight text-ink">{data.service}</p>
-          {data.meta ? <p className="text-[13px] text-ink/55">{data.meta}</p> : null}
+          {data.meta ? <p className="text-[13px] text-ink/70">{data.meta}</p> : null}
           <dl className="mt-3 divide-y divide-plum-300/30 border-t border-plum-300/30">
             {data.staff ? <Row label={t.summary.staff} value={data.staff} /> : null}
             {data.date ? <Row label={t.summary.date} value={data.date} /> : null}
             {data.time ? <Row label={t.summary.time} value={data.time} /> : null}
             {data.price ? <Row label={t.summary.price} value={data.price} /> : null}
           </dl>
-          {data.price ? <p className="mt-1 text-[12px] text-ink/45">{t.summary.priceNote}</p> : null}
+          {data.price ? <p className="mt-1 text-[12px] text-ink/70">{t.summary.priceNote}</p> : null}
         </>
       ) : (
-        <p className="mt-2 text-[15px] text-ink/60">{t.summary.empty}</p>
+        <p className="mt-2 text-[15px] text-ink/70">{t.summary.empty}</p>
       )}
       {children ? <div className="mt-5 space-y-2">{children}</div> : null}
     </aside>

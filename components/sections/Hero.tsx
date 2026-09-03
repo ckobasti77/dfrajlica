@@ -66,7 +66,7 @@ export default function Hero() {
           <p data-hero="subtitle" className="mt-5 text-[16px] leading-relaxed text-ink/70 lg:mt-7 lg:text-[19px]">
             {hero.subtitle}
           </p>
-          <p data-hero="subtitle" className="mt-3 hidden max-w-[52ch] text-[17px] text-ink/65 lg:block">
+          <p data-hero="subtitle" className="mt-3 hidden max-w-[52ch] text-[17px] text-ink/70 lg:block">
             {hero.intro}
           </p>
           <div data-hero="cta" className="mt-7 flex w-full flex-col gap-3 sm:flex-row sm:justify-center lg:mt-10 lg:justify-start">
@@ -87,6 +87,7 @@ export default function Hero() {
                 alt={hero.image.alt}
                 fill
                 priority
+                fetchPriority="high"
                 sizes="(max-width: 1024px) 100vw, 520px"
                 className="object-cover"
               />

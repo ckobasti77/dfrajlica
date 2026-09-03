@@ -392,7 +392,7 @@ function BookingWizardLive() {
     <div className="relative text-ink" data-reveal="off">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <StepDots step={step} onJump={go} />
-        <p className="text-[13px] text-ink/50">{t.stepOf(step + 1, t.steps.length)}</p>
+        <p className="text-[13px] text-ink/70">{t.stepOf(step + 1, t.steps.length)}</p>
       </div>
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8">
@@ -443,17 +443,17 @@ function BookingWizardLive() {
                         <p className="mt-4 text-[15px] text-ink/80">
                           {t.day.ends(fmtRange(startMin, startMin + durationMin))}
                           {chosenSlot && chosenSlot.staff.length === 1 && service && service.staff.length > 1 ? (
-                            <span className="text-ink/55"> · {t.day.withStaff(staffName(chosenSlot.staff[0]))}</span>
+                            <span className="text-ink/70"> · {t.day.withStaff(staffName(chosenSlot.staff[0]))}</span>
                           ) : null}
                         </p>
                       ) : (
-                        <p id={`${baseId}-hint`} className="mt-4 text-[14px] text-ink/55">
+                        <p id={`${baseId}-hint`} className="mt-4 text-[14px] text-ink/70">
                           {t.day.pickHint}
                         </p>
                       )}
                     </div>
                   ) : (
-                    <p id={`${baseId}-hint`} className="text-[14px] text-ink/55">
+                    <p id={`${baseId}-hint`} className="text-[14px] text-ink/70">
                       {t.day.pickHint}
                     </p>
                   )}

@@ -50,7 +50,7 @@ export default function ServicesTab({ adminKey }: { adminKey: string }) {
                   <li key={s.key} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
                     <label htmlFor={id} className="min-w-0 flex-1">
                       <span className="block text-[15px] font-medium text-ink">{s.title}</span>
-                      <span className="block text-[12.5px] text-ink/50">
+                      <span className="block text-[12.5px] text-ink/70">
                         {s.priceFrom !== null ? `${t.services.priceFrom} ${formatNumber(s.priceFrom)} · ` : ""}
                         {t.services.defaultOf(s.durationMin)}
                       </span>
@@ -69,7 +69,7 @@ export default function ServicesTab({ adminKey }: { adminKey: string }) {
                         className={`${inputClass} w-24 tabular-nums ${changed ? "ring-2 ring-plum-500" : ""}`}
                         aria-label={`${s.title} — ${t.services.duration}`}
                       />
-                      <span className="text-[13px] text-ink/50">мин</span>
+                      <span className="text-[13px] text-ink/70">мин</span>
                       {effective !== s.durationMin ? (
                         <button
                           type="button"

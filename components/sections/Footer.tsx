@@ -12,14 +12,14 @@ export default function Footer() {
 
       <div className="container-x relative z-10 flex flex-col items-center py-14 text-center lg:py-20">
         <Image
-          src="/logos/logo-wide.avif"
+          src="/logos/logo-wide.png"
           alt={site.name}
           width={1200}
           height={270}
           sizes="(max-width: 1023px) 250px, 285px"
           className="h-14 w-auto lg:h-16"
         />
-        <p className="mt-2 text-[15px] text-ink/60">{site.tagline}</p>
+        <p className="mt-2 text-[15px] text-ink/70">{site.tagline}</p>
 
         <address className="mt-8 flex flex-col items-center gap-3 not-italic text-[16px] text-ink lg:text-[17px]">
           <a
@@ -46,7 +46,7 @@ export default function Footer() {
             <Clock size={18} className="mt-1 shrink-0 text-plum-500" />
             <span>{site.hours.summary}</span>
           </p>
-          <p className="text-[14px] text-ink/55">{site.address.transport}</p>
+          <p className="text-[14px] text-ink/70">{site.address.transport}</p>
         </address>
 
         <ul className="mt-7 flex flex-wrap items-center justify-center gap-3" aria-label={strings.social}>
@@ -74,7 +74,7 @@ export default function Footer() {
           </li>
         </ul>
 
-        <p className="mt-8 text-[14px] text-ink/55">
+        <p className="mt-8 text-[14px] text-ink/70">
           {footer.copyright} · {footer.madeWith}
         </p>
       </div>

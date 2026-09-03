@@ -53,7 +53,7 @@ export function useAsyncAction() {
 export function StatusLine({ busy, error, flash }: { busy: boolean; error: string | null; flash: boolean }) {
   return (
     <p className="min-h-5 text-[13px]" aria-live="polite">
-      {busy ? <span className="text-ink/60">{t.saving}</span> : error ? <span className="text-red-700">{error}</span> : flash ? <span className="text-emerald-700">{t.saved}</span> : null}
+      {busy ? <span className="text-ink/70">{t.saving}</span> : error ? <span className="text-red-700">{error}</span> : flash ? <span className="text-emerald-700">{t.saved}</span> : null}
     </p>
   );
 }

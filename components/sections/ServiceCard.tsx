@@ -34,7 +34,7 @@ export default function ServiceCard({ id, title, short, image, alt }: ServiceCar
         />
       </span>
       <span className="h3 mt-4 text-plum-700 lg:mt-5">{title}</span>
-      <span className="mt-2 hidden text-[14.5px] leading-relaxed text-ink/65 min-[420px]:block lg:text-[15px]">{short}</span>
+      <span className="mt-2 hidden text-[14.5px] leading-relaxed text-ink/70 min-[420px]:block lg:text-[15px]">{short}</span>
     </button>
   );
 }

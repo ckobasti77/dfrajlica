@@ -207,7 +207,7 @@ function BookingActions({ adminKey, booking, onDone }: { adminKey: string; booki
           </a>
         ) : null}
         {booking.note ? <p className="mt-2 rounded-xl bg-paper/70 px-3 py-2 text-[14px] text-ink/80">{booking.note}</p> : null}
-        <p className="mt-2 text-[13px] text-ink/50">{statusLabel(booking.status)}</p>
+        <p className="mt-2 text-[13px] text-ink/70">{statusLabel(booking.status)}</p>
       </div>
       <StatusLine busy={busy} error={error} flash={flash} />
       <div className="flex flex-wrap gap-2">
@@ -313,7 +313,7 @@ export default function CalendarTab({ adminKey }: { adminKey: string }) {
                 return (
                   <div key={m.key} className="py-2">
                     {m.name}
-                    {label ? <span className="ml-2 text-[12px] font-normal text-ink/50">{label}</span> : null}
+                    {label ? <span className="ml-2 text-[12px] font-normal text-ink/70">{label}</span> : null}
                   </div>
                 );
               })}
@@ -321,7 +321,7 @@ export default function CalendarTab({ adminKey }: { adminKey: string }) {
             <div className="grid grid-cols-[56px_1fr_1fr]">
               <div className="relative" style={{ height: ROWS * ROW_PX }}>
                 {rows.map((m) => (
-                  <div key={m} className="absolute right-2 -translate-y-1/2 text-[11px] tabular-nums text-ink/50" style={{ top: top(m) }}>
+                  <div key={m} className="absolute right-2 -translate-y-1/2 text-[11px] tabular-nums text-ink/70" style={{ top: top(m) }}>
                     {m % 60 === 0 ? fmt(m) : ""}
                   </div>
                 ))}

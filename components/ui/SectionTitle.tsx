@@ -13,7 +13,7 @@ type SectionTitleProps = {
 };
 
 const tones = {
-  ink: { h: "text-ink", p: "text-ink/65" },
+  ink: { h: "text-ink", p: "text-ink/70" },
   mocha: { h: "text-mocha", p: "text-mocha/70" },
   white: { h: "text-white", p: "text-white/80" },
 } as const;
@@ -38,7 +38,7 @@ export default function SectionTitle({
             style={{ aspectRatio: "396 / 370" }}
           >
             <Image
-              src="/images/ornaments/leaf-tr.avif"
+              src="/images/ornaments/leaf-tr.png"
               alt=""
               width={396}
               height={370}

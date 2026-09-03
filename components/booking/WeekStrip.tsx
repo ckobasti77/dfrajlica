@@ -65,7 +65,7 @@ export default function WeekStrip({ weekStart, today, horizonEnd, selected, days
         </button>
         <p id={`${groupId}-label`} className="text-center font-serif text-[19px] text-ink sm:text-[21px]">
           {formatMonthYear(weekStart)}
-          {isCurrentWeek ? <span className="block font-sans text-[13px] leading-tight text-ink/50 sm:ml-2 sm:inline sm:text-[14px]">{t.day.thisWeek}</span> : null}
+          {isCurrentWeek ? <span className="block font-sans text-[13px] leading-tight text-ink/70 sm:ml-2 sm:inline sm:text-[14px]">{t.day.thisWeek}</span> : null}
         </p>
         <button type="button" onClick={onNext} disabled={!canNext} aria-label={t.day.nextWeek} className={arrowClass}>
           <ChevronRight size={20} />
@@ -101,7 +101,7 @@ export default function WeekStrip({ weekStart, today, horizonEnd, selected, days
                 isEnabled ? "cursor-pointer hover:bg-plum-100/70" : "cursor-not-allowed",
               ].join(" ")}
             >
-              <span className={`text-[11px] font-semibold tracking-[0.08em] ${isEnabled ? "text-ink/60" : "text-ink/30"}`}>
+              <span className={`text-[11px] font-semibold tracking-[0.08em] ${isEnabled ? "text-ink/70" : "text-ink/30"}`}>
                 {formatWeekdayShort(d.date)}
               </span>
               <span

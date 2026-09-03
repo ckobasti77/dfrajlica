@@ -105,7 +105,7 @@ export default function DetailsStep({ ids, values, errors, touched, disabled, on
           <label htmlFor={ids.note} className="text-sm font-medium text-ink">
             {t.details.note}
           </label>
-          <span className="text-xs text-ink/50" aria-hidden="true">
+          <span className="text-xs text-ink/70" aria-hidden="true">
             {t.details.noteCount(values.note.length, NOTE_MAX)}
           </span>
         </div>
@@ -139,7 +139,7 @@ export default function DetailsStep({ ids, values, errors, touched, disabled, on
         />
       </div>
 
-      <p className="text-[13px] text-ink/60">{t.details.privacy}</p>
+      <p className="text-[13px] text-ink/70">{t.details.privacy}</p>
     </fieldset>
   );
 }

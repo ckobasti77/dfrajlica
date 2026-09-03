@@ -76,7 +76,7 @@ export default function SlotChips({ slots, selected, durationMin, showStaffHint,
                   className={chipClass(isSel, "h-11 min-w-[78px] flex-col gap-0 px-4 tabular-nums")}
                 >
                   <span>{fmt(start)}</span>
-                  {hint ? <span className={`text-[11px] font-normal leading-none ${isSel ? "text-white/80" : "text-ink/50"}`}>{hint}</span> : null}
+                  {hint ? <span className={`text-[11px] font-normal leading-none ${isSel ? "text-white/80" : "text-ink/70"}`}>{hint}</span> : null}
                 </button>
               );
             })}

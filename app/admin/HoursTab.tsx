@@ -82,12 +82,12 @@ function StaffWeek({ adminKey, staffKey, rows }: { adminKey: string; staffKey: S
           <li key={weekday} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start">
             <p className="w-32 shrink-0 pt-2 text-[15px] font-medium capitalize text-ink">{label}</p>
             <div className="flex flex-1 flex-col gap-2">
-              {week[weekday].length === 0 ? <p className="pt-2 text-[14px] text-ink/50">{t.hours.dayOff}</p> : null}
+              {week[weekday].length === 0 ? <p className="pt-2 text-[14px] text-ink/70">{t.hours.dayOff}</p> : null}
               {week[weekday].map((r, i) => (
                 <div key={i} className="flex flex-wrap items-center gap-2">
-                  <span className="text-[13px] text-ink/50">{t.hours.from}</span>
+                  <span className="text-[13px] text-ink/70">{t.hours.from}</span>
                   <TimeSelect value={r.startMin} onChange={(v) => update(weekday, i, { startMin: v, endMin: Math.max(r.endMin, v + 30) })} ariaLabel={`${label} ${t.hours.from}`} />
-                  <span className="text-[13px] text-ink/50">{t.hours.to}</span>
+                  <span className="text-[13px] text-ink/70">{t.hours.to}</span>
                   <TimeSelect value={r.endMin} onChange={(v) => update(weekday, i, { endMin: v })} min={r.startMin + 15} ariaLabel={`${label} ${t.hours.to}`} />
                   <button type="button" className={`${dangerButtonClass} h-9 px-3`} onClick={() => remove(weekday, i)}>
                     {t.remove}
@@ -240,7 +240,7 @@ function Overrides({ adminKey }: { adminKey: string }) {
       {list === undefined ? (
         <p className="mt-3 text-ink/70">{t.loading}</p>
       ) : list.length === 0 ? (
-        <p className="mt-3 text-[14px] text-ink/60">{t.hours.noOverrides}</p>
+        <p className="mt-3 text-[14px] text-ink/70">{t.hours.noOverrides}</p>
       ) : (
         <ul className="mt-3 divide-y divide-plum-300/30">
           {[...list]

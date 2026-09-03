@@ -52,7 +52,7 @@ function StaticLeaves({ faded }: { faded: boolean }) {
     >
       {/* top-left sprig: desktop fallback only (mobile.png shows a single bottom-right sprig) */}
       <Image
-        src="/images/ornaments/leaf3d-a.avif"
+        src="/images/ornaments/leaf3d-a.png"
         alt=""
         width={420}
         height={379}
@@ -62,7 +62,7 @@ function StaticLeaves({ faded }: { faded: boolean }) {
         draggable={false}
       />
       <Image
-        src="/images/ornaments/leaf3d-b.avif"
+        src="/images/ornaments/leaf3d-b.png"
         alt=""
         width={420}
         height={365}
