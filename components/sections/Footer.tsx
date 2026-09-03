@@ -12,7 +12,7 @@ export default function Footer() {
 
       <div className="container-x relative z-10 flex flex-col items-center py-14 text-center lg:py-20">
         <Image
-          src="/logos/logo-wide.png"
+          src="/logos/logo-wide.avif"
           alt={site.name}
           width={1200}
           height={270}

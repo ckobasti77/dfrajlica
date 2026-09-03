@@ -38,7 +38,7 @@ export default function SectionTitle({
             style={{ aspectRatio: "396 / 370" }}
           >
             <Image
-              src="/images/ornaments/leaf-tr.png"
+              src="/images/ornaments/leaf-tr.avif"
               alt=""
               width={396}
               height={370}

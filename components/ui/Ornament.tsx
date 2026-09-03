@@ -60,7 +60,7 @@ export default function Ornament({
       {...rest}
     >
       <Image
-        src={`/images/ornaments/leaf-${corner}.png`}
+        src={`/images/ornaments/leaf-${corner}.avif`}
         alt=""
         width={width}
         height={height}
