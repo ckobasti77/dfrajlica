@@ -1,32 +1,13 @@
-/** Сви текстови форме за заказивање и админ панела — ћирилица. */
-
-export const staffOptions = [
-  { value: "jana", label: "Јана" },
-  { value: "branka", label: "Бранка" },
-  { value: "any", label: "Свеједно" },
-] as const;
-export type Staff = (typeof staffOptions)[number]["value"];
-
-export const timeSlotOptions = [
-  { value: "prepodne", label: "Преподне" },
-  { value: "popodne", label: "Поподне" },
-  { value: "any", label: "Свеједно" },
-] as const;
-export type TimeSlot = (typeof timeSlotOptions)[number]["value"];
+/** Текстови админ панела — ћирилица. (Текстови бирача термина су у content/site.ts → bookingV2.) */
 
 export const statusOptions = [
-  { value: "nov", label: "Нов" },
+  { value: "nov", label: "На чекању" },
   { value: "potvrdjen", label: "Потврђен" },
   { value: "otkazan", label: "Отказан" },
+  { value: "odbijen", label: "Одбијен" },
 ] as const;
 export type Status = (typeof statusOptions)[number]["value"];
 
-export function staffLabel(staff: Staff | undefined): string {
-  return staffOptions.find((o) => o.value === staff)?.label ?? "—";
-}
-export function timeSlotLabel(slot: TimeSlot): string {
-  return timeSlotOptions.find((o) => o.value === slot)?.label ?? slot;
-}
 export function statusLabel(status: Status): string {
   return statusOptions.find((o) => o.value === status)?.label ?? status;
 }
@@ -37,71 +18,114 @@ export function formatDate(iso: string): string {
   return m ? `${m[3]}.${m[2]}.${m[1]}` : iso;
 }
 
-export const formStrings = {
-  legend: "Захтев за термин",
-  name: "Име и презиме",
-  namePlaceholder: "нпр. Милица Јовановић",
-  phone: "Телефон",
-  phonePlaceholder: "069 123 4567",
-  service: "Услуга",
-  servicePlaceholder: "Изаберите услугу",
-  staff: "Мајстор",
-  date: "Датум",
-  time: "Време",
-  note: "Напомена (необавезно)",
-  notePlaceholder: "Боја, дужина, посебне жеље…",
-  noteCount: (n: number, max: number) => `${n}/${max}`,
-  submit: "Пошаљи захтев",
-  submitting: "Шаљем…",
-  privacy: "Податке користимо само да потврдимо термин.",
-  errors: {
-    required: "Ово поље је обавезно.",
-    name: "Унесите име и презиме (2–60 знакова).",
-    phone: "Унесите исправан број телефона (нпр. 069 889 3550).",
-    service: "Изаберите услугу.",
-    date: "Унесите исправан датум.",
-    datePast: "Изаберите неки наредни датум.",
-    sunday: "Недељом не радимо — изаберите други дан.",
-    note: "Напомена може имати највише 300 знакова.",
-    generic: "Нешто је пошло по злу.",
-    noBackend: "Слање тренутно није доступно.",
-  },
-  errorTitle: "Захтев није послат",
-  errorHint: "Позовите нас или пишите на Вибер:",
-  callUs: "Позови",
-  success: {
-    title: "Захтев је примљен ✓",
-    text: (phone: string) => `Потврђујемо поруком или позивом на ${phone}.`,
-    quickTitle: "Желите одмах да нам пишете?",
-    reset: "Нови захтев",
-  },
-  summary: (parts: { serviceTitle: string; staff?: string; date: string; timeSlot: string; name: string }) =>
-    `Здраво! Желим термин: ${parts.serviceTitle}${parts.staff ? `, мајстор ${parts.staff}` : ""}, ${parts.date}, ${parts.timeSlot}. ${parts.name}`,
-} as const;
-
 export const adminStrings = {
   title: "Панел — Д фрајлица",
-  heading: "Захтеви за термине",
-  count: (n: number) => (n === 1 ? "1 захтев" : n >= 2 && n <= 4 ? `${n} захтева` : `${n} захтева`),
+  heading: "Панел",
   keyLabel: "Кључ",
   keyPlaceholder: "Унесите админ кључ",
   keySubmit: "Отвори панел",
   keyClear: "Промени кључ",
   badKey: "Неисправан кључ",
   loading: "Учитавам…",
-  empty: "Још нема захтева.",
-  columns: {
-    date: "Датум",
-    time: "Време",
-    service: "Услуга",
-    staff: "Мајстор",
-    name: "Име",
-    phone: "Телефон",
-    note: "Напомена",
-    status: "Статус",
-    actions: "Акције",
+  saving: "Чувам…",
+  saved: "Сачувано ✓",
+  error: "Грешка",
+  close: "Затвори",
+  cancel: "Одустани",
+  save: "Сачувај",
+  remove: "Уклони",
+  tabs: {
+    requests: "Захтеви",
+    calendar: "Календар",
+    hours: "Радно време",
+    services: "Услуге",
   },
-  confirm: "Потврди",
-  cancel: "Откажи",
-  received: "Примљено",
+  banner: {
+    title: "Подесите радно време",
+    text: "Тренутно важе подразумевани термини: пон–пет 10:00–20:00, суб 10:00–16:00, недеља нерадна. Проверите и измените у картици „Радно време“ — уносе се за Бранку и Јану посебно.",
+    go: "Отвори радно време",
+    init: "Иницијализуј",
+  },
+  requests: {
+    empty: "Нема нових захтева. Сви термини су у календару.",
+    count: (n: number) => (n === 1 ? "1 захтев на чекању" : n >= 2 && n <= 4 ? `${n} захтева на чекању` : `${n} захтева на чекању`),
+    confirm: "Потврди",
+    decline: "Одбиј",
+    received: "примљено",
+    note: "Напомена",
+    source: { web: "сајт", admin: "ручно" },
+  },
+  calendar: {
+    today: "Данас",
+    prev: "Претходни дан",
+    next: "Следећи дан",
+    date: "Датум",
+    closed: "нерадно",
+    off: "слободан дан",
+    custom: "посебно радно време",
+    pending: "на чекању",
+    confirmed: "потврђен",
+    block: "пауза",
+    legend: { confirmed: "Потврђен", pending: "На чекању", block: "Пауза / блокирано", closed: "Ван радног времена" },
+    cellActions: "Радње",
+    addBooking: "Додај термин",
+    addBlock: "Блокирај",
+    confirm: "Потврди",
+    decline: "Одбиј",
+    cancel: "Откажи термин",
+    removeBlock: "Уклони паузу",
+    call: "Позови",
+    manual: {
+      title: "Додај термин (ручно)",
+      name: "Име и презиме",
+      phone: "Телефон (необавезно)",
+      service: "Услуга",
+      staff: "Мајстор",
+      start: "Почетак",
+      duration: "Трајање (мин)",
+      note: "Напомена",
+      save: "Сачувај као потврђен",
+    },
+    blockForm: {
+      title: "Блокирај време",
+      staff: "Мајстор",
+      from: "Од",
+      to: "До",
+      reason: "Разлог (необавезно)",
+      reasonPlaceholder: "пауза, одмор, приватно…",
+      save: "Блокирај",
+    },
+  },
+  hours: {
+    title: "Недељно радно време",
+    intro: "За сваки дан унесите један или више опсега (нпр. 10:00–14:00 и 16:00–20:00). Дан без опсега је нерадан.",
+    dayOff: "Нерадан дан",
+    addRange: "+ Додај опсег",
+    from: "од",
+    to: "до",
+    overridesTitle: "Изузеци по датуму",
+    overridesIntro: "Радна субота, слободан дан или посебно радно време за конкретан датум. Изузетак има предност над недељним распоредом.",
+    addWorkingSaturday: "+ Радна субота",
+    addDayOff: "+ Слободан дан",
+    addCustom: "+ Посебно време",
+    noOverrides: "Нема изузетака у наредних 60 дана.",
+    kindOff: "слободан дан",
+    kindCustom: "ради",
+    note: "Напомена",
+    settingsTitle: "Подешавања термина",
+    step: "Корак термина (мин)",
+    lead: "Најмања најава (мин)",
+    horizon: "Колико дана унапред",
+    hold: "Захтев истиче после (сати)",
+    saveSettings: "Сачувај подешавања",
+  },
+  services: {
+    title: "Трајање услуга",
+    intro: "Трајање одређује које термине клијенткиње виде. Измена важи одмах.",
+    service: "Услуга",
+    duration: "Трајање (мин)",
+    priceFrom: "Цена од",
+    defaultOf: (n: number) => `подразумевано ${n} мин`,
+    reset: "Врати подразумевано",
+  },
 } as const;

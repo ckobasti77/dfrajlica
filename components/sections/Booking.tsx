@@ -1,5 +1,5 @@
 import { booking, site } from "@/content/site";
-import BookingForm from "@/components/booking/BookingForm";
+import BookingWizard from "@/components/booking/BookingWizard";
 import Ornament from "@/components/ui/Ornament";
 import SectionTitle from "@/components/ui/SectionTitle";
 import { Phone } from "@/components/ui/Icons";
@@ -12,7 +12,9 @@ export default function Booking() {
   const quick = booking.channels.filter((c) => (quickChannelIds as readonly string[]).includes(c.id));
 
   return (
-    <section id="zakazivanje" aria-labelledby="zakazivanje-title" className="section-y relative overflow-hidden bg-plum-700 text-white">
+    // `overflow-clip` (not hidden): the wizard's mobile summary bar is `sticky`,
+    // and an overflow:hidden ancestor would turn it into a plain block.
+    <section id="zakazivanje" aria-labelledby="zakazivanje-title" className="section-y relative overflow-clip bg-plum-700 text-white">
       <Ornament corner="bl" invert opacity={0.14} sizeClass="w-[150px] lg:w-[340px]" className="-left-4 -bottom-4" />
       <Ornament corner="br" invert opacity={0.14} sizeClass="w-[140px] lg:w-[320px]" className="-right-4 -bottom-4" />
       <Ornament corner="tr" invert opacity={0.1} sizeClass="w-[0px] lg:w-[260px]" className="-right-6 -top-8" />
@@ -20,8 +22,8 @@ export default function Booking() {
       <div className="container-x relative z-10">
         <SectionTitle id="zakazivanje-title" title={booking.title} subtitle={booking.subtitle} tone="white" />
 
-        <div className="mx-auto mt-10 max-w-[720px] rounded-card bg-white p-5 text-ink shadow-plum-lg sm:p-8 lg:mt-14 lg:p-10">
-          <BookingForm />
+        <div className="mx-auto mt-10 max-w-[1040px] rounded-card bg-white p-5 text-ink shadow-plum-lg sm:p-8 lg:mt-14 lg:p-10">
+          <BookingWizard />
         </div>
 
         <div className="mx-auto mt-10 flex max-w-[720px] flex-col items-center gap-5 lg:mt-12">

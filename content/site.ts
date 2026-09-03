@@ -256,6 +256,152 @@ export const booking = {
   ],
 } as const;
 
+/* ---------- Заказивање v2: услуге са трајањем (термини) ---------- */
+
+export type StaffKey = "branka" | "jana";
+
+export const staffMembers = [
+  { key: "branka", name: "Бранка", order: 0 },
+  { key: "jana", name: "Јана", order: 1 },
+] as const satisfies readonly { key: StaffKey; name: string; order: number }[];
+
+export function staffName(key: StaffKey | "any" | undefined | null): string {
+  if (key === "branka") return "Бранка";
+  if (key === "jana") return "Јана";
+  return "Свеједно";
+}
+
+export const bookableGroups = ["Маникир", "Педикир", "Депилација", "Обрве и трепавице", "Лице и тело"] as const;
+export type BookableGroup = (typeof bookableGroups)[number];
+
+export type BookableService = {
+  key: string;
+  title: string;
+  group: BookableGroup;
+  /** Подразумевано трајање; власница може да га промени у админу (serviceOverrides). */
+  durationMin: number;
+  /** „од" цена у RSD или null */
+  priceFrom: number | null;
+  staff: readonly StaffKey[];
+};
+
+const BOTH: readonly StaffKey[] = ["branka", "jana"];
+const BRANKA: readonly StaffKey[] = ["branka"];
+
+/**
+ * Услуге које се могу заказати кроз бирач термина. Претпоставка (види DECISIONS):
+ * нокти (Маникир група) раде обе, све остало само Бранка.
+ */
+export const bookableServices: readonly BookableService[] = [
+  { key: "manikir", title: "Маникир", group: "Маникир", durationMin: 60, priceFrom: 1700, staff: BOTH },
+  { key: "gel-lak", title: "Гел лак", group: "Маникир", durationMin: 75, priceFrom: 2500, staff: BOTH },
+  { key: "korekcija", title: "Корекција ноктију", group: "Маникир", durationMin: 90, priceFrom: 2500, staff: BOTH },
+  { key: "izlivanje", title: "Изливање ноктију", group: "Маникир", durationMin: 120, priceFrom: 3200, staff: BOTH },
+  { key: "skidanje-gela", title: "Скидање гела", group: "Маникир", durationMin: 30, priceFrom: 1500, staff: BOTH },
+  { key: "polupedikir", title: "Полупедикир", group: "Педикир", durationMin: 45, priceFrom: 1700, staff: BRANKA },
+  { key: "estetski-pedikir", title: "Естетски педикир", group: "Педикир", durationMin: 60, priceFrom: 2500, staff: BRANKA },
+  { key: "pedikir-gel-lak", title: "Педикир са гел лаком", group: "Педикир", durationMin: 75, priceFrom: 2900, staff: BRANKA },
+  { key: "medicinski-pedikir", title: "Медицински педикир", group: "Педикир", durationMin: 60, priceFrom: 3000, staff: BRANKA },
+  { key: "dep-nausnica-obrve", title: "Депилација (наусница/обрве)", group: "Депилација", durationMin: 15, priceFrom: 400, staff: BRANKA },
+  { key: "dep-lice", title: "Депилација лица", group: "Депилација", durationMin: 20, priceFrom: 1000, staff: BRANKA },
+  { key: "dep-ruke", title: "Депилација руку", group: "Депилација", durationMin: 30, priceFrom: 1000, staff: BRANKA },
+  { key: "dep-noge", title: "Депилација ногу", group: "Депилација", durationMin: 45, priceFrom: 1300, staff: BRANKA },
+  { key: "dep-noge-prepone", title: "Депилација ногу са препонама", group: "Депилација", durationMin: 60, priceFrom: 1500, staff: BRANKA },
+  { key: "dep-intimna", title: "Депилација интимне регије", group: "Депилација", durationMin: 30, priceFrom: 1400, staff: BRANKA },
+  { key: "obrve-farbanje", title: "Фарбање и корекција обрва", group: "Обрве и трепавице", durationMin: 20, priceFrom: 600, staff: BRANKA },
+  { key: "laminacija-obrva", title: "Ламинација обрва", group: "Обрве и трепавице", durationMin: 45, priceFrom: 2500, staff: BRANKA },
+  { key: "laminacija-trepavica", title: "Ламинација трепавица", group: "Обрве и трепавице", durationMin: 60, priceFrom: 2500, staff: BRANKA },
+  { key: "laminacija-obrva-trepavica", title: "Ламинација обрва и трепавица", group: "Обрве и трепавице", durationMin: 90, priceFrom: 4000, staff: BRANKA },
+  { key: "higijenski", title: "Хигијенски третман", group: "Лице и тело", durationMin: 60, priceFrom: 2800, staff: BRANKA },
+  { key: "vocne-kiseline", title: "Воћне киселине", group: "Лице и тело", durationMin: 45, priceFrom: 1800, staff: BRANKA },
+  { key: "mikronidling", title: "Микронидлинг", group: "Лице и тело", durationMin: 60, priceFrom: 5000, staff: BRANKA },
+  { key: "sprej-ten", title: "Спреј тен", group: "Лице и тело", durationMin: 30, priceFrom: 2000, staff: BRANKA },
+];
+
+export function findBookableService(key: string): BookableService | undefined {
+  return bookableServices.find((s) => s.key === key);
+}
+
+/** Сви текстови бирача термина (v2). */
+export const bookingV2 = {
+  steps: ["Услуга", "Дан и време", "Подаци"] as const,
+  stepOf: (i: number, n: number) => `Корак ${i} од ${n}`,
+  nav: { back: "Назад", next: "Даље", change: "Промени" },
+  service: {
+    title: "Изаберите услугу",
+    staffLabel: "Ко ради?",
+    staffAny: "Свеједно",
+    minutes: (n: number) => `${n} мин`,
+    priceFrom: (p: string) => `од ${p}`,
+    required: "Изаберите услугу да бисте наставили.",
+  },
+  day: {
+    title: "Изаберите дан и време",
+    thisWeek: "(ове недеље)",
+    prevWeek: "Претходна недеља",
+    nextWeek: "Следећа недеља",
+    weekStrip: "Избор дана",
+    today: "данас",
+    sundayClosed: "недељом не радимо",
+    dayOff: "нерадан дан",
+    noSlots: "нема слободних термина",
+    loading: "Учитавам слободне термине…",
+    empty: "Нема слободних термина — пробајте други дан или нас позовите.",
+    prepodne: "Преподне",
+    popodne: "Поподне",
+    slotsLabel: "Слободни термини",
+    ends: (range: string) => `Термин: ${range}`,
+    withStaff: (name: string) => `код ${name}`,
+    pickHint: "Изаберите време да бисте наставили.",
+  },
+  details: {
+    title: "Ваши подаци",
+    name: "Име и презиме",
+    namePlaceholder: "нпр. Милица Јовановић",
+    phone: "Телефон",
+    phonePlaceholder: "069 123 4567",
+    note: "Напомена (необавезно)",
+    notePlaceholder: "Боја, дужина, посебне жеље…",
+    noteCount: (n: number, max: number) => `${n}/${max}`,
+    submit: "Пошаљи захтев",
+    submitting: "Шаљем…",
+    privacy: "Податке користимо само да потврдимо термин. Термин није потврђен док вам се не јавимо.",
+  },
+  summary: {
+    title: "Ваш термин",
+    service: "Услуга",
+    staff: "Мајстор",
+    date: "Дан",
+    time: "Време",
+    duration: "Трајање",
+    price: "Цена",
+    empty: "Изаберите услугу — овде ће се приказати детаљи термина.",
+    staffAny: "Бранка или Јана",
+    priceNote: "коначна цена зависи од обима рада",
+  },
+  success: {
+    title: "Захтев је послат ✓",
+    text: (staff: string, phone: string) =>
+      `${staff} потврђује термин поруком или позивом на ${phone}. Термин је резервисан до потврде.`,
+    quickTitle: "Желите одмах да нам пишете?",
+    reset: "Нови захтев",
+    message: (parts: { service: string; date: string; time: string; name: string }) =>
+      `Здраво! Послала сам захтев за термин преко сајта: ${parts.service}, ${parts.date} у ${parts.time}. ${parts.name}`,
+  },
+  errors: {
+    required: "Ово поље је обавезно.",
+    name: "Унесите име и презиме (2–60 знакова).",
+    phone: "Унесите исправан број телефона (нпр. 069 889 3550).",
+    note: "Напомена може имати највише 300 знакова.",
+    taken: "Термин је управо заузет — изаберите други.",
+    generic: "Нешто је пошло по злу. Покушајте поново или нас позовите.",
+    noBackend: "Онлајн заказивање тренутно није доступно.",
+    title: "Захтев није послат",
+    hint: "Позовите нас или пишите на Вибер:",
+    callUs: "Позови",
+  },
+} as const;
+
 export const footer = {
   copyright: `© ${new Date().getFullYear()} Д фрајлица`,
   madeWith: "Земун · Србија",

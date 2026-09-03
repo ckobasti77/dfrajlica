@@ -42,3 +42,6 @@ next-env.d.ts
 
 # temp — obrisati rucno
 _to_delete/
+
+# local preview config (machine-specific)
+/.claude/launch.json

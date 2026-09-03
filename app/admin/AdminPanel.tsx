@@ -1,52 +1,40 @@
 "use client";
 
-import { Component, useId, useState, useSyncExternalStore, type ErrorInfo, type ReactNode } from "react";
+import { Component, useEffect, useId, useState, useSyncExternalStore, type ErrorInfo, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { site } from "@/content/site";
-import {
-  adminStrings as t,
-  formatDate,
-  staffLabel,
-  statusLabel,
-  timeSlotLabel,
-  type Status,
-} from "@/components/booking/strings";
+import { adminStrings as t } from "@/components/booking/strings";
+import CalendarTab from "./CalendarTab";
+import HoursTab from "./HoursTab";
+import RequestsTab from "./RequestsTab";
+import ServicesTab from "./ServicesTab";
+import { ghostButtonClass, inputClass, primaryButtonClass } from "./ui";
 
 const STORAGE_KEY = "dfrajlica_admin_key";
+const TAB_KEY = "dfrajlica_admin_tab";
+
+type Tab = "requests" | "calendar" | "hours" | "services";
+const TABS: Tab[] = ["requests", "calendar", "hours", "services"];
 
 const subscribeNoop = () => () => {};
 
-function readStoredKey(): string {
+function readStored(key: string): string {
   try {
-    return window.sessionStorage.getItem(STORAGE_KEY) ?? "";
+    return window.sessionStorage.getItem(key) ?? "";
   } catch {
     return "";
   }
 }
 
-function writeStoredKey(key: string): void {
+function writeStored(key: string, value: string): void {
   try {
-    if (key) window.sessionStorage.setItem(STORAGE_KEY, key);
-    else window.sessionStorage.removeItem(STORAGE_KEY);
+    if (value) window.sessionStorage.setItem(key, value);
+    else window.sessionStorage.removeItem(key);
   } catch {
-    // sessionStorage unavailable — key lives in memory only
+    // sessionStorage unavailable — state lives in memory only
   }
 }
-
-const inputClass =
-  "h-12 w-full rounded-xl border border-plum-300/50 bg-white px-4 text-ink outline-none transition-shadow duration-200 focus:ring-2 focus:ring-plum-500";
-const primaryButtonClass =
-  "inline-flex h-12 items-center justify-center rounded-full bg-plum-700 px-6 font-medium text-white transition-colors duration-200 hover:bg-plum-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-plum-500 focus-visible:ring-offset-2 disabled:opacity-60";
-const ghostButtonClass =
-  "inline-flex h-9 items-center justify-center rounded-full border border-plum-300/60 bg-white px-4 text-sm font-medium text-plum-700 transition-colors duration-200 hover:bg-plum-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-plum-500 disabled:cursor-not-allowed disabled:opacity-50";
-
-const statusBadgeClass: Record<Status, string> = {
-  nov: "bg-plum-100 text-plum-700",
-  potvrdjen: "bg-emerald-100 text-emerald-800",
-  otkazan: "bg-neutral-200 text-neutral-700",
-};
 
 /* ---------- Error boundary: useQuery throws ConvexError for a wrong key ---------- */
 
@@ -67,7 +55,7 @@ class KeyErrorBoundary extends Component<BoundaryProps, BoundaryState> {
   render(): ReactNode {
     if (this.state.failed) {
       return (
-        <div role="alert" className="rounded-[20px] border border-plum-300/50 bg-plum-100 p-6 text-ink">
+        <div role="alert" className="rounded-2xl border border-plum-300/50 bg-plum-100 p-6 text-ink">
           <p className="font-medium text-plum-700">{t.badKey}</p>
           <button
             type="button"
@@ -121,97 +109,77 @@ function KeyForm({ onSubmit }: { onSubmit: (key: string) => void }) {
   );
 }
 
-/* ---------- Table ---------- */
+/* ---------- Shell with tabs ---------- */
 
-function BookingsTable({ adminKey }: { adminKey: string }) {
-  const bookings = useQuery(api.bookings.list, { key: adminKey });
-  const setStatus = useMutation(api.bookings.setStatus);
-  const [busy, setBusy] = useState<Id<"bookings"> | null>(null);
+function Shell({ adminKey, tab, onTab }: { adminKey: string; tab: Tab; onTab: (t: Tab) => void }) {
+  const status = useQuery(api.admin.status, { key: adminKey });
+  const pending = useQuery(api.bookings.pendingCount, { key: adminKey });
+  const init = useMutation(api.admin.init);
+  const tabsId = useId();
 
-  const update = async (id: Id<"bookings">, status: Status) => {
-    setBusy(id);
-    try {
-      await setStatus({ key: adminKey, id, status });
-    } finally {
-      setBusy(null);
-    }
-  };
+  // Seed staff / default hours / settings on first load (idempotent).
+  useEffect(() => {
+    const seed = () => {
+      if (status && !status.seeded) void init({ key: adminKey });
+    };
+    seed();
+  }, [status, init, adminKey]);
 
-  if (bookings === undefined) {
-    return <p className="text-ink/70">{t.loading}</p>;
-  }
+  const labels: Record<Tab, string> = t.tabs;
 
   return (
     <>
-      <p className="mb-4 text-sm text-ink/70">{t.count(bookings.length)}</p>
-      {bookings.length === 0 ? (
-        <p className="rounded-[20px] border border-plum-300/40 bg-white p-6 text-ink/70">{t.empty}</p>
-      ) : (
-        <div className="overflow-x-auto rounded-[20px] border border-plum-300/40 bg-white">
-          <table className="w-full min-w-[960px] border-collapse text-left text-sm text-ink">
-            <thead className="bg-plum-100/60 text-xs uppercase tracking-wide text-plum-700">
-              <tr>
-                <th scope="col" className="px-4 py-3 font-medium">{t.columns.date}</th>
-                <th scope="col" className="px-4 py-3 font-medium">{t.columns.time}</th>
-                <th scope="col" className="px-4 py-3 font-medium">{t.columns.service}</th>
-                <th scope="col" className="px-4 py-3 font-medium">{t.columns.staff}</th>
-                <th scope="col" className="px-4 py-3 font-medium">{t.columns.name}</th>
-                <th scope="col" className="px-4 py-3 font-medium">{t.columns.phone}</th>
-                <th scope="col" className="px-4 py-3 font-medium">{t.columns.note}</th>
-                <th scope="col" className="px-4 py-3 font-medium">{t.columns.status}</th>
-                <th scope="col" className="px-4 py-3 font-medium">{t.columns.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bookings.map((b: Doc<"bookings">) => (
-                <tr key={b._id} className="border-t border-plum-300/30 align-top">
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <div className="font-medium">{formatDate(b.date)}</div>
-                    <div className="text-xs text-ink/50">
-                      {t.received} {new Date(b.createdAt).toLocaleDateString("sr-Latn-RS")}
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3">{timeSlotLabel(b.timeSlot)}</td>
-                  <td className="px-4 py-3">{b.serviceTitle}</td>
-                  <td className="whitespace-nowrap px-4 py-3">{staffLabel(b.staff)}</td>
-                  <td className="px-4 py-3">{b.name}</td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <a href={`tel:${b.phone}`} className="text-plum-700 underline underline-offset-4 hover:text-plum-500">
-                      {b.phone}
-                    </a>
-                  </td>
-                  <td className="max-w-[16rem] px-4 py-3 text-ink/80">{b.note ?? "—"}</td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${statusBadgeClass[b.status]}`}>
-                      {statusLabel(b.status)}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className={ghostButtonClass}
-                        disabled={busy === b._id || b.status === "potvrdjen"}
-                        onClick={() => update(b._id, "potvrdjen")}
-                      >
-                        {t.confirm}
-                      </button>
-                      <button
-                        type="button"
-                        className={ghostButtonClass}
-                        disabled={busy === b._id || b.status === "otkazan"}
-                        onClick={() => update(b._id, "otkazan")}
-                      >
-                        {t.cancel}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {status && !status.hoursConfirmed ? (
+        <div role="status" className="mb-5 rounded-2xl border border-plum-300/50 bg-plum-100 p-4 text-ink">
+          <p className="font-medium text-plum-700">{t.banner.title}</p>
+          <p className="mt-1 text-[14px] text-ink/80">{t.banner.text}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className={ghostButtonClass} onClick={() => onTab("hours")}>
+              {t.banner.go}
+            </button>
+            {!status.seeded ? (
+              <button type="button" className={ghostButtonClass} onClick={() => init({ key: adminKey })}>
+                {t.banner.init}
+              </button>
+            ) : null}
+          </div>
         </div>
-      )}
+      ) : null}
+
+      <div role="tablist" aria-label={t.heading} className="no-scrollbar -mx-4 mb-5 flex gap-1 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        {TABS.map((k) => {
+          const active = k === tab;
+          return (
+            <button
+              key={k}
+              id={`${tabsId}-${k}`}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              aria-controls={`${tabsId}-panel`}
+              onClick={() => onTab(k)}
+              className={[
+                "relative inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-[15px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-plum-500",
+                active ? "bg-plum-700 text-white" : "text-plum-700 hover:bg-plum-100",
+              ].join(" ")}
+            >
+              {labels[k]}
+              {k === "requests" && pending ? (
+                <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[12px] font-semibold tabular-nums ${active ? "bg-white text-plum-700" : "bg-plum-700 text-white"}`}>
+                  {pending}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+
+      <div id={`${tabsId}-panel`} role="tabpanel" aria-labelledby={`${tabsId}-${tab}`}>
+        {tab === "requests" ? <RequestsTab adminKey={adminKey} /> : null}
+        {tab === "calendar" ? <CalendarTab adminKey={adminKey} /> : null}
+        {tab === "hours" ? <HoursTab adminKey={adminKey} /> : null}
+        {tab === "services" ? <ServicesTab adminKey={adminKey} /> : null}
+      </div>
     </>
   );
 }
@@ -220,31 +188,37 @@ function BookingsTable({ adminKey }: { adminKey: string }) {
 
 export default function AdminPanel() {
   // Read sessionStorage lazily on the client; output is gated by `hydrated` so SSR and hydration match.
-  const [adminKey, setAdminKey] = useState<string>(() =>
-    typeof window === "undefined" ? "" : readStoredKey(),
-  );
+  const [adminKey, setAdminKey] = useState<string>(() => (typeof window === "undefined" ? "" : readStored(STORAGE_KEY)));
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window === "undefined") return "requests";
+    const stored = readStored(TAB_KEY);
+    return (TABS as string[]).includes(stored) ? (stored as Tab) : "requests";
+  });
   const hydrated = useSyncExternalStore(subscribeNoop, () => true, () => false);
 
   const applyKey = (key: string) => {
-    writeStoredKey(key);
+    writeStored(STORAGE_KEY, key);
     setAdminKey(key);
   };
-
   const clearKey = () => applyKey("");
+  const onTab = (next: Tab) => {
+    writeStored(TAB_KEY, next);
+    setTab(next);
+  };
 
   return (
-    <main className="min-h-screen bg-paper px-4 py-10 text-ink sm:px-8">
+    <main id="admin-root" data-admin="" className="min-h-screen bg-paper px-4 py-6 text-ink sm:px-8 sm:py-10">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm text-plum-500">{site.name}</p>
             <h1 className="font-serif text-3xl text-plum-700 sm:text-4xl">{t.heading}</h1>
           </div>
-          {adminKey && (
+          {adminKey ? (
             <button type="button" className={ghostButtonClass} onClick={clearKey}>
               {t.keyClear}
             </button>
-          )}
+          ) : null}
         </header>
 
         {!hydrated ? (
@@ -253,7 +227,7 @@ export default function AdminPanel() {
           <KeyForm onSubmit={applyKey} />
         ) : (
           <KeyErrorBoundary key={adminKey} onReset={clearKey}>
-            <BookingsTable adminKey={adminKey} />
+            <Shell adminKey={adminKey} tab={tab} onTab={onTab} />
           </KeyErrorBoundary>
         )}
       </div>

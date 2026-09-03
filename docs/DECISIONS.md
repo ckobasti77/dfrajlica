@@ -198,3 +198,61 @@ Tri stvari koje su pojedinačno bile pogrešne i tek zajedno daju rezultat:
 - `Hero.tsx` **nije bilo potrebno menjati** — sve staje u postojeći omotač (kartica + 120px na `lg`).
 - Na 390×844 donja ivica hero kartice pada tačno na pregib, pa je mobilni list na samoj granici vidljivog. Ako se
   kartica podigne ~40px, list bi bio ceo u prvom ekranu (kao na `mobile.png`).
+
+## Booking v2 (slots)
+
+Датум: 2026-09-03. Заказивање по терминима (30 мин корак) уместо „преподне/поподне" форме. Захтев клијента **никад** не потврђује сам — резервише термин као „на чекању" (`nov`) док власница не потврди/одбије у `/admin`.
+
+### Шема (`convex/schema.ts`)
+- `staff` { key: branka|jana, name, active, order } · idx `by_key`. Сидира се из `admin.init` (аутоматски при првом отварању панела; постоји и дугме „Иницијализуј").
+- `schedules` { staffKey, weekday 0–6 (0 = недеља), startMin, endMin } · idx `by_staff_weekday`. Више редова по дану = подељена смена. Подразумевано: пон–пет 10:00–20:00, суб 10:00–16:00, нед нерадна — за обе.
+- `scheduleOverrides` { staffKey, date, kind: off|custom, startMin?, endMin?, note? } · idx `by_staff_date`, `by_date`. Изузетак **побеђује** недељни распоред; тако ради „свака друга субота" (власница дода „+ Радна субота" за конкретне датуме) и слободни дани.
+- `blocks` { staffKey, date, startMin, endMin, reason? } · idx `by_staff_date` — паузе унутар дана.
+- `bookings` проширено: `serviceKey, durationMin, staffKey, startMin, endMin, decidedAt`, `status` добија `odbijen`, `source` web|admin. Стара поља (`serviceId, staff, timeSlot`) остају опциона. Индекси `by_createdAt, by_status, by_phone, by_staff_date, by_date`.
+- `settings` (један документ) { slotStepMin 30, leadTimeMin 120, horizonDays 30, holdHours 48, hoursConfirmed }.
+- `serviceOverrides` { serviceKey, durationMin } · idx `by_serviceKey` — трајања која власница промени у картици „Услуге"; читају их и upit-и и UI.
+- Времена су **минути од поноћи** (`startMin/endMin`), датуми `YYYY-MM-DD`, све у Europe/Belgrade. Ниједан JS Date се не чува.
+
+### Мотор доступности
+- `lib/slots.ts` — чисте функције без Convex увоза: `buildDaySlots({ workRanges, busyRanges, durationMin, stepMin, minStartMin })`, `toMin/fmt/fmtRange`, `belgradeNow`, `addDays/weekdayOf/diffDays` (све TZ-независно преко UTC подне). Покривено са 14 Vitest тестова (`lib/slots.test.ts`): уклапање у опсег, преклапање на ивицама, најава данас/сутра, подељене смене, изузетак vs недељно, пауза у средини, 120-мин услуга пред затварање.
+- `convex/lib/availability.ts` — разрешава радно време (override → schedules → подразумевано ако база није сидирана), заузеће (blocks + bookings nov/potvrdjen), трајање (serviceOverrides → content). `availability.day` и `availability.week` **примају `now` као аргумент** (клијент шаље време заокружено на 5 мин) јер Convex упити не смеју да читају сат — тако остају кеширани и реактивни.
+- `bookings.request` поново валидира **све** унутар мутације (honeypot, име/телефон, хоризонт, недеља без изузетка, `startMin ∈ buildDaySlots(...)` из базе у том тренутку, rate-limit 3/h по телефону). Convex мутације су серијализабилне, па две истовремене за исти термин → тачно једна прође, друга добије `ConvexError("Термин је управо заузет — изаберите други.")`. Доказано скриптом `scripts/race-test.mjs` (PASS).
+- „Свеједно" (само нокти): клијент види унију термина обе; захтев иде оној која има слободно, а ако имају обе — оној са **мање термина тог дана** (`countBookingsOn`).
+- Cron (`convex/crons.ts`): сваког сата `bookings.expirePending` — захтеви на чекању старији од `holdHours` → `otkazan` са напоменом „истекло".
+- Обавештење (`convex/notify.ts`): интерна акција после сваког захтева шаље е-пошту **само ако** постоје обе env променљиве:
+  `npx convex env set RESEND_API_KEY re_xxx --prod` и `npx convex env set NOTIFY_EMAIL adresa@example.com --prod` (опционо `RESEND_FROM`; без домена шаље са `onboarding@resend.dev`, што Resend доставља само на адресу власника налога). Без кључева — тихо прескаче.
+- Миграција `migrations:convertLegacyBookings` (интерна, идемпотентна, пагинирана): стари редови добијају `staffKey` (jana остаје, све друго → branka), `startMin` (преподне → 10:00, поподне → 14:00, свеједно → 10:00), 60 мин. Извршена на dev (1 ред); на prod нема старих редова (табела празна).
+- `bookings.create` (v1) остаје **депрекирано** један деплој ради старих клијената — уписује и v2 поља. Уклонити при следећем деплоју.
+
+### Претпоставке (за проверу са власницом)
+- **Услуге ноктију (група Маникир) раде и Бранка и Јана; све остало само Бранка.** Трајања су процене из задатка; власница мења у „Услуге".
+- Цене „од" у бирачу = најнижа цена из ценовника (Јана за нокте).
+- Недеља је затворена осим ако власница не дода „Посебно време" за тај датум.
+- Хоризонт 30 дана и најава 2 h су у `settings` (мењају се у „Радно време → Подешавања термина"). Клијентски бирач има константу `HORIZON_DAYS = 30` само за границу стрелица; мотор је ауторитативан (дани ван хоризонта враћају 0 термина).
+
+### Клијентски UI (`components/booking/*`, секција `#zakazivanje`)
+- Три корака у једној картици: Услуга (чипови по групама + сегмент Бранка/Јана/Свеједно) → Дан и време (недељна трака од данас, 7 дана, ‹ ›, прстен за данас, недеља и дани без термина пригушени, чипови „Преподне"/„Поподне", skeleton, празно стање са tel: pill) → Подаци (име, телефон, напомена, honeypot). Десктоп: две колоне (бирач лево, резиме десно, `sticky`); мобилни: сложено + лепљива трака резимеа на дну картице.
+- framer-motion између корака: слајд 24px + fade, 0.35s, expo-out (без bounce-а); под reduced-motion без померања. Фокус иде на наслов корака по завршетку анимације; `aria-live` за учитавање/грешке; чипови су `button[aria-pressed]`, трака дана је `radiogroup` са стрелицама/Home/End.
+- Копија у `content/site.ts → bookingV2`; датуми преко `Intl.DateTimeFormat("sr-Cyrl-RS")` (проверено: „четвртак, 3. септембар", „септембар 2026.", „ЧЕТ").
+- Реактивност: ако изабрани термин нестане (власница потврдила други захтев), бирач га сам поништи и врати корисника на корак 2; грешка „управо заузет" ради исто.
+- Секција је `overflow-clip` уместо `overflow-hidden` — `overflow:hidden` предак претвара `position:sticky` у обичан блок. Лепљива трака мора бити директно дете високог корена бирача (sticky путује само унутар родитеља).
+- Форме остају ван text-reveal-а (`data-reveal="off"` на корену бирача; `form` је већ у skipSelector-у).
+
+### Админ (`/admin`, исти кључ)
+- Картице: **Захтеви** (badge = број на чекању; Потврди/Одбиј; телефон је tel: линк), **Календар** (дан, ‹ › + date picker, две колоне Бранка/Јана, 30-мин редови 08–21; потврђен = пун plum, на чекању = plum оквир, пауза = сиве шрафуре, ван радног времена = paper; тап на празну ћелију → „Додај термин"/„Блокирај"; тап на термин → акције), **Радно време** (по мајстору 7 дана × опсези, изузеци „+ Радна субота / + Слободан дан / + Посебно време", подешавања), **Услуге** (трајања).
+- Банер „Подесите радно време" стоји док власница први пут не сачува радно време (`settings.hoursConfirmed`).
+- Ручни термин (`bookings.createManual`) може и ван радног времена, али не преко постојећег термина/паузе.
+- Прелази статуса: nov → potvrdjen | odbijen | otkazan; potvrdjen → otkazan.
+- Tailwind v4 напомена: `w-full` из заједничке `inputClass` побеђује `w-auto` додат касније (редослед у CSS-у, не у стрингу) — за компактне пикере постоји `compactInputClass`.
+
+### Верификација
+- `npx vitest run` 14/14 · `npx tsc --noEmit` 0 · `npx eslint .` 0 · `npm run build` пролази (`/`, `/admin` статични).
+- `scripts/e2e-booking.mjs` (Playwright, против `next dev` + Convex dev): услуга → дан → термин → захтев → `/admin` на чекању → Потврди → термин нестаје из свежег бирача → други захтев → задржан док чека → Одбиј → термин се враћа. 9/9. Screenshot-ови `docs/screenshots/booking-v2-{1440,390}-*.png`, `booking-v2-admin-*.png` (снимљени на `next dev`, па се види Next „1 Issue" значка — то је постојеће hydration упозорење text-reveal head скрипте, не бирача).
+- `scripts/race-test.mjs`: два истовремена захтева за исти термин → тачно један успех.
+- `scripts/cleanup-test-bookings.mjs` отказује тест термине („Е2Е Тест…", „Race Test…") — само dev.
+- Напомена: e2e тест закуцава мајстора на Бранку јер „Свеједно" приказује унију обе (задржан термин код једне не уклања термин код друге — исправно понашање, не баг).
+- Dev deps: `vitest`, `playwright` (Chromium 1234 већ у `~/AppData/Local/ms-playwright`); `@types/node` подигнут на ^22 због vitest 5 peer-а.
+
+### Env / деплој
+- Vercel: `NEXT_PUBLIC_CONVEX_URL=https://fortunate-deer-607.eu-west-1.convex.cloud` (prod). Convex prod: `ADMIN_KEY` већ постављен; опционо `RESEND_API_KEY`, `NOTIFY_EMAIL`, `RESEND_FROM`.
+- После `npx convex deploy`: отворити `/admin` (аутоматски сидира staff/schedules/settings) или `npx convex run admin:init '{"key":"<ADMIN_KEY>"}' --prod`. Миграција старих редова: `npx convex run migrations:convertLegacyBookings --prod` (није потребна — prod табела празна).
