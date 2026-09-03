@@ -6,19 +6,39 @@ import { scrollToHash } from "@/components/SmoothScroll";
 import { Phone } from "@/components/ui/Icons";
 
 export default function MobileBar() {
-  const [hidden, setHidden] = useState(false);
+  // Bar slides in once the hero CTA has scrolled away, and hides again over the
+  // booking section.
+  const [ctaGone, setCtaGone] = useState(false);
+  const [bookingInView, setBookingInView] = useState(false);
+  const hidden = !ctaGone || bookingInView;
 
   useEffect(() => {
-    const target = document.getElementById("zakazivanje");
-    if (!target || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) setHidden(entry.isIntersecting);
-      },
-      { threshold: 0.15 },
-    );
-    io.observe(target);
-    return () => io.disconnect();
+    if (typeof IntersectionObserver === "undefined") return;
+    const cta = document.getElementById("hero-primary-cta");
+    const booking = document.getElementById("zakazivanje");
+    const observers: IntersectionObserver[] = [];
+
+    const markCtaGone = (gone: boolean) => setCtaGone(gone);
+    if (cta) {
+      const io = new IntersectionObserver(([entry]) => markCtaGone(!entry.isIntersecting), { threshold: 0 });
+      io.observe(cta);
+      observers.push(io);
+    } else {
+      markCtaGone(true); // no CTA to gate on — behave as before
+    }
+
+    if (booking) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) setBookingInView(entry.isIntersecting);
+        },
+        { threshold: 0.15 },
+      );
+      io.observe(booking);
+      observers.push(io);
+    }
+
+    return () => observers.forEach((o) => o.disconnect());
   }, []);
 
   return (

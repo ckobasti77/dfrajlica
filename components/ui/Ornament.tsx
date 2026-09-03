@@ -25,6 +25,10 @@ type OrnamentProps = Omit<ComponentPropsWithRef<"div">, "children"> & {
   /** White-on-plum variant */
   invert?: boolean;
   opacity?: number;
+  /** Slow ±1.5° breathing rotation (desktop, motion-safe only). */
+  breathe?: boolean;
+  /** Stagger the breathing so paired leaves are out of phase (seconds). */
+  breatheDelay?: number;
 };
 
 /**
@@ -36,6 +40,8 @@ export default function Ornament({
   sizeClass = "w-[140px] lg:w-[300px]",
   invert = false,
   opacity,
+  breathe = false,
+  breatheDelay = 0,
   className = "",
   style,
   ...rest
@@ -59,7 +65,8 @@ export default function Ornament({
         width={width}
         height={height}
         sizes="(max-width: 1023px) 160px, 340px"
-        className="h-auto w-full"
+        className={`h-auto w-full ${breathe ? "ornament-breathe" : ""}`.trim()}
+        style={breathe ? { animationDelay: `${breatheDelay}s` } : undefined}
         draggable={false}
       />
     </div>

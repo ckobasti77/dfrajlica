@@ -58,7 +58,48 @@ Datum: 2026-09-03
 - Pristupačnost: sve slike imaju alt (dekorativne `alt=""`), dugmad imaju imena, labele povezane (`htmlFor`), Lightbox zatvara Escape, `:focus-visible` plum outline globalno, reduced-motion ne sakriva ništa trajno.
 - Booking tok testiran end-to-end: forma → Convex → `/admin` tabela → „Откажи" menja status u „Отказан".
 
+## Polish — UI/motion
+
+Sesija: полирање живог сајта (Next 16.3.4, Tailwind v4, framer-motion, GSAP, Lenis). Радни worktree; власништво: `components/*`, `app/globals.css`, `app/layout.tsx`, `app/page.tsx`, нови `lib/textReveal.ts`, `constants/textRevealConfig.ts`, `content/site.ts` само `ui`. Није дирано: `components/hero/*` 3D, `public/models`, `public/images/ornaments/leaf3d-*`, `convex/*`.
+
+### Два система за откривање (reveal) — да се opacity никад не анимира двапут
+- **Текст (реч по реч):** нови `constants/textRevealConfig.ts` (`TEXT_REVEAL` + `textRevealHideCss()` + `textRevealHeadScript()`) и `lib/textReveal.ts` (`splitWords` МЕСТИ текст-чворове у `.reveal-word` спанове — никад не клонира; `restoreWords`; рантайм са једним `IntersectionObserver` + `MutationObserver`, WAAPI, насумичан редослед речи, blur 6px/y 10px/0.55s). `TextRevealGlobal` монтиран једном у `app/layout.tsx`.
+- Скривање пре првог фрејма: инлајн `<style>` у `<head>` (из `textRevealHideCss()`) + инлајн скрипта која поставља `data-text-reveal-active` и има 2.6s failsafe (ако рантайм не крене, копија постаје видљива). CSS правило **изузима skip-подстабла** (`header/nav/form/[role=dialog]/[data-reveal=off]/…`) истом логиком као рантайм `closest(skipSelector)` — иначе би хром остао трајно скривен.
+- **Не-текст (картице/плочице/редови/поља):** `components/motion/Reveal.tsx` (framer `whileInView`, amount 0.2, once, `initial{opacity:0,y:24}`, 2s fallback преко `getBoundingClientRect`, `data-reveal-el`) и `components/motion/RevealGroup.tsx` (`RevealGroup`/`RevealItem`, `staggerChildren`). `Reveal` и `RevealItem` носе `data-reveal="off"` да их текст-систем не дира.
+- Safety net у `globals.css`: `html:not([data-motion-ready]) [data-reveal-el]{opacity:1!important}`; `data-motion-ready` поставља `TextRevealGlobal` на mount (клијент, не head — да преживи неуспелу хидратацију).
+- **Bottom-catch:** скупљени root (−15%) никад не досегне доњих 15% стране, па најнижи елементи (нпр. фусnote copyright) не окидају; додат scroll/resize handler који их открије кад је страна на дну. Провера „ништа скривено" враћа `[]` и на 390 и на 1440.
+- Обрисан `components/motion/useStaggerRows.ts` (ScrollTrigger.batch + MutationObserver — узрок B3); GSAP задржава само hero timeline и parallax.
+
+### Hero (skill „case 2")
+- Копија је у `data-reveal="off"` омотачу; `useHeroTimeline` користи `splitWords`/`restoreWords` из `lib/textReveal.ts` (никад локални splitter, никад block-fade) — речи стижу reč по reč синхроно са фотографијом. Наслов су два блок-спана (задњи plum-700), plum „лепоту" преживљава поделу. Под reduced-motion: без поделе, копија остаје видљива.
+- Уклоњено fade-овање орнамената у timeline-у (узрок B2 — листови остајали невидљиви). Орнаменти видљиви по дефолту; parallax само транслира (±12px, desktop+motion-safe); додата „breathing" ротација ±1.5°/8s на унутрашњи `<img>` (desktop, motion-safe) да не колидира са GSAP transform-ом на омотачу.
+
+### B1/B2 — мобилни хедер и мени
+- Мени се рендерује кроз `createPortal` у `document.body` (`fixed inset-0 min-h-[100dvh] z-[70] bg-white`), хедер испод. Хедер више **не** блурује док је мени отворен (`blurred = scrolled && !open`) — `backdrop-filter` је правио containing block за fixed децу (B1: дијалог 136px → сад = innerHeight, потврђено 844=844).
+- Focus trap (Tab циклус), Escape, scroll-lock, `lenisStop()/lenisStart()` (нови експорти у `SmoothScroll`). Лого горе-лево / X горе-десно у истим позицијама као затворено стање (иста `ROW` геометрија, `px-6`). Линкови serif 36px, plum-100 дивидери, stagger (y16→0, 0.45s, 0.06). CTA + адреса + телефон на дну, два листа 40% у угловима. Мени је `data-reveal="off"`.
+- B2: лого `h-9` на мобилном, top scrim (`from-white/90…`) кад није скроловано да лого/хамбургер увек читљиви; hero орнаменти смањени на `w-24` и померени напоље.
+
+### B4/B5 — ценовник
+- Редослед `priceList` очуван свуда. Десктоп: две колоне се пуне **префикс/суфикс** поделом (`splitColumns`) — леви = први K група, десни = остатак; слагањем леви-па-десни на мобилном добија се тачан оригинални редослед (нема greedy reorder-а из B4).
+- Све групе collapsible и на мобилном и на десктопу (десктоп: све отворене по дефолту). `AnimatePresence` + `motion.div` height 0↔auto (0.4s) + opacity (0.25s), `overflow:hidden`, chevron ротира 180°, `aria-expanded/role=region/aria-labelledby`, `price-group-toggled` на крају анимације (окида `ScrollTrigger.refresh()`). Редови су `RevealGroup` (stagger 0.04).
+- Ћелије цена: број→`1.700`; `[a,b]`→две ћелије; `"+300"`→једна ћелија десно-поравната преко обе колоне; `"— / 3.500"`→парсирано у „—" и „3.500". `tabular-nums`, име се прелама (`overflow-wrap:anywhere`), leader се скупља први (`min-width:8px`). Провера на 360px: `scrollWidth 345 ≤ 360`, 0 редова прелива.
+
+### Микро-интеракције (§6)
+- Дугмад: `motion-safe:hover:-translate-y-px` + `active:scale-[0.98]`. Service картице: hover lift 4px + thumb `scale 1.04`. Галерија: stagger 0.06 + слика `scale 1.06→1` на reveal (унутрашњи `motion.span` варијанта). Lightbox: spring open (stiffness 260, damping 26), swipe (framer `drag="x"`, ±80px → next/prev). Booking: поља stagger, success картица `scale .96→1` + SVG чекирка се исцртава (`pathLength`), грешке fade (без тресења). MobileBar: улази тек кад hero CTA (`#hero-primary-cta`) изађе из видног поља, крије се на `#zakazivanje`. Header лого `scale 0.92` на скрол (desktop). Све под `motion-safe`; reduced-motion → статично.
+
+### Одступања / напомене за authора
+- **Bare `<span>` НИЈЕ у `candidateSelector`** (за разлику од skill §4): угнежђени спанови унутар наслова (нпр. `SectionTitle` унутрашњи span, hero title спанови) би се двоструко обрађивали. Eyebrows/kickers на овом сајту су `<p>` па нема губитка. Експлицитно `data-reveal="text"` и даље ради.
+- **Редови ценовника: `RevealGroup` (stagger), НЕ реч-по-реч** (spec §4 vs §5 су у конфликту). framer opacity на `li` + WAAPI на речима исте `li` би се тукли и правили flash кад framer открије `li` пре него што splitter подели речи. Редови су `data-reveal="off"`.
+- Могући минималан „flash" hero копије на веома спором учитавању фонтова (копија је видљива од SSR-а јер је `data-reveal=off`, па се тек после `fonts.ready` подели и анимира). У пракси `fonts.ready` брзо резолвује; прихваћено.
+- **ПРЕ-ПОСТОЈЕЋИ БАГ (ван власништва, хитно пре деплоја):** `public/images/instagram/hero/*` су комитовани као `.avif`, али `content/site.ts` (`hero.image.src`, `services` депилација) и `public/images/instagram/manifest.json` их референцирају као `.jpg` → 2 слике 400 (hero фото + депилација картица). Референце нису у мом власништву (само `ui` објекат `content/site.ts`). **Исправка:** променити те 2 путање у `.avif` (или конвертовати назад). За screenshot-ове је привремено DOM-ом мењан `src` (без измене фајлова). Остале слике (галерија/картице) су `.jpg` и раде.
+
+### Билд/верификација (worktree)
+- Worktree нема `node_modules`; направљен junction ка `dfrajlica/node_modules`. Turbopack одбија junction који излази из root-а, па је `next.config.ts` **привремено** добио `turbopack.root` на главни фолдер — **враћено на чисто пре краја** (не сме у commit). За билд у worktree-у треба и junction и тај root; корисник ионако билдује у правом фолдеру.
+- `npx tsc --noEmit`: 0; `npx eslint .`: 0; `npm run build`: пролази. Playwright 390/844 и 1440/900: „ништа скривено" `[]`, `pending` 0, сви `[data-reveal-el]` opacity 1, мени height=innerHeight, ценовник toggle, 360px без хоризонталног скрола/пресеченик цена. Screenshotови: `docs/screenshots/v2-{390,1440}.png`, `v2-menu-390.png`, `v2-price-{360,390}.png`. Конзола: само 2 позната image-400 (avif/jpg) + Convex fallback warning.
+- Lint правило `react-hooks/set-state-in-effect`: setState у ефекту иде преко именоване функције (као постојећи `onScroll()`), не директно.
+
 ## Otvorena pitanja za vlasnicu
+- **HITNO пре деплоја:** hero слике `.avif` vs `.jpg` референце (види „Одступања" горе) — 2 сломљене слике на живом сајту.
 - Tačno radno vreme po danima / po majstoru (trenutno samo „уз заказивање, радним данима и сваке друге суботе").
 - Da li cene prikazivati po majstoru (Јана/Бранка) i za druge grupe, ili samo za manikir.
 - Ćirilično imenovanje stranih termina: Gel lak / lash lift / spray tan (sada: „Гел лак", „lash lift", „Спреј тен").

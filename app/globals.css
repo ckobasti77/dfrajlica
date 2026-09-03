@@ -89,6 +89,7 @@ body {
   font-size: clamp(44px, 7vw, 96px);
   line-height: 1.02;
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .h2 {
@@ -97,6 +98,7 @@ body {
   font-size: clamp(36px, 4vw, 56px);
   line-height: 1.1;
   letter-spacing: -0.005em;
+  text-wrap: balance;
 }
 
 .h3 {
@@ -158,11 +160,12 @@ body {
   background-size: 220px 220px;
 }
 
-/* Dotted leaders for price rows */
+/* Dotted leaders for price rows — a border, never text, so the reveal never
+   turns the dots into words. Shrinks before the service name does. */
 .leaders {
   flex: 1 1 auto;
-  min-width: 20px;
-  margin-inline: 0.55em;
+  min-width: 8px;
+  margin-inline: 0.5em;
   align-self: flex-end;
   height: 0.7em;
   border-bottom: 2px dotted currentColor;
@@ -183,12 +186,39 @@ body {
   object-fit: cover;
 }
 
-/* Hero title lines: masked reveal container */
-.line-mask {
-  display: block;
-  overflow: hidden;
-  padding-bottom: 0.06em;
-  margin-bottom: -0.06em;
+/* ---------- Reveal systems ---------- */
+
+/* Non-text reveal safety net: [data-reveal-el] stays visible until the framer
+   runtime signals it is ready, so a failed hydration never leaves the SSR
+   opacity:0 stuck. See components/motion/Reveal.tsx and TextRevealGlobal.tsx. */
+html:not([data-motion-ready]) [data-reveal-el] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Word spans keep the copy inline; kerning stays natural, wrapping still works. */
+.reveal-word {
+  display: inline-block;
+  white-space: pre;
+}
+
+/* Slow breathing rotation for hero corner leaves — desktop, motion-safe only.
+   Applied to the inner <img>, so GSAP's parallax (translate) on the wrapper and
+   this rotation never fight over the same transform. */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .ornament-breathe {
+    transform-origin: 50% 25%;
+    animation: ornament-breathe 8s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes ornament-breathe {
+  from {
+    transform: rotate(-1.5deg);
+  }
+  to {
+    transform: rotate(1.5deg);
+  }
 }
 
 /* ---------- Motion safety ---------- */

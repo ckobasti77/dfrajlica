@@ -138,11 +138,18 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Ligh
 
           <motion.figure
             key={img.src}
-            initial={{ opacity: 0, scale: reduce ? 1 : 0.97 }}
+            initial={{ opacity: 0, scale: reduce ? 1 : 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: reduce ? 1 : 0.98 }}
-            transition={{ duration: dur, ease: [0.16, 1, 0.3, 1] }}
-            className="m-0 flex max-h-full max-w-full flex-col items-center"
+            exit={{ opacity: 0, scale: reduce ? 1 : 0.96 }}
+            transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 26 }}
+            drag={reduce || count < 2 ? false : "x"}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.18}
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -80) next();
+              else if (info.offset.x > 80) prev();
+            }}
+            className="m-0 flex max-h-full max-w-full cursor-grab flex-col items-center active:cursor-grabbing"
             onClick={(e) => e.stopPropagation()}
           >
             <Image
@@ -151,6 +158,7 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Ligh
               width={img.width}
               height={img.height}
               sizes="(max-width: 768px) 100vw, 80vw"
+              draggable={false}
               className="h-auto max-h-[82vh] w-auto max-w-full rounded-card object-contain"
             />
             <figcaption className="mt-3 text-center text-[14px] text-white/80">

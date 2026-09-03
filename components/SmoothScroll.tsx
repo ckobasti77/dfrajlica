@@ -20,6 +20,16 @@ function resolveHash(hash: string): HTMLElement | null {
   return document.getElementById(id);
 }
 
+/** Pause Lenis (e.g. while the mobile menu / a dialog is open). No-op if inactive. */
+export function lenisStop(): void {
+  lenis?.stop();
+}
+
+/** Resume Lenis after a dialog closes. No-op if inactive. */
+export function lenisStart(): void {
+  lenis?.start();
+}
+
 /**
  * Smooth-scroll to an in-page anchor (e.g. "#cenovnik") with header offset and
  * update the URL hash. Works before Lenis is ready (native fallback).
@@ -79,6 +89,14 @@ export default function SmoothScroll() {
     };
     document.addEventListener("click", onClick);
 
+    // Keep ScrollTrigger's cached positions correct as layout settles: after
+    // fonts swap, after the window fully loads (images), and whenever a price
+    // group expands/collapses (rows appear/disappear below it).
+    const refresh = () => ScrollTrigger.refresh();
+    document.fonts?.ready.then(refresh).catch(() => {});
+    window.addEventListener("load", refresh);
+    window.addEventListener("price-group-toggled", refresh);
+
     let initial = 0;
     if (window.location.hash) {
       const hash = window.location.hash;
@@ -88,6 +106,8 @@ export default function SmoothScroll() {
     return () => {
       window.clearTimeout(initial);
       document.removeEventListener("click", onClick);
+      window.removeEventListener("load", refresh);
+      window.removeEventListener("price-group-toggled", refresh);
       if (tick) gsap.ticker.remove(tick);
       lenis?.destroy();
       lenis = null;

@@ -18,8 +18,8 @@ export default function Hero() {
   const trRef = useRef<HTMLDivElement>(null);
 
   useHeroTimeline(scope);
-  useParallax(tlRef, 28);
-  useParallax(trRef, 36);
+  useParallax(tlRef, 12);
+  useParallax(trRef, 12);
 
   const go = (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
     e.preventDefault();
@@ -37,28 +37,29 @@ export default function Hero() {
         ref={tlRef}
         corner="tl"
         data-hero="ornament"
-        sizeClass="w-[130px] lg:w-[320px]"
-        className="-left-3 -top-2 lg:-left-6 lg:-top-4"
+        breathe
+        sizeClass="w-24 lg:w-[320px]"
+        className="-left-5 -top-3 lg:-left-6 lg:-top-4"
       />
       <Ornament
         ref={trRef}
         corner="tr"
         data-hero="ornament"
-        sizeClass="w-[120px] lg:w-[300px]"
-        className="-right-3 -top-2 lg:-right-4 lg:-top-6"
+        breathe
+        breatheDelay={-4}
+        sizeClass="w-24 lg:w-[300px]"
+        className="-right-5 -top-3 lg:-right-4 lg:-top-6"
       />
 
       <div className="container-x relative z-10 flex flex-col items-center gap-8 pb-14 text-center lg:min-h-[calc(92svh-120px)] lg:grid lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:gap-16 lg:pb-24 lg:text-left">
-        <div className="w-full max-w-[640px]">
+        <div data-reveal="off" className="w-full max-w-[640px]">
           <p data-hero="eyebrow" className="eyebrow text-plum-500">
             {hero.eyebrow}
           </p>
-          <h1 id="hero-title" className="h1 mt-4 text-ink lg:mt-6">
+          <h1 id="hero-title" data-hero="title" className="h1 mt-4 text-ink lg:mt-6">
             {hero.title.map((line, i) => (
-              <span key={line} className="line-mask">
-                <span data-hero="title-line" className={`block ${i === hero.title.length - 1 ? "text-plum-700" : ""}`}>
-                  {line}
-                </span>
+              <span key={line} className={`block ${i === hero.title.length - 1 ? "text-plum-700" : ""}`}>
+                {line}
               </span>
             ))}
           </h1>
@@ -69,7 +70,7 @@ export default function Hero() {
             {hero.intro}
           </p>
           <div data-hero="cta" className="mt-7 flex w-full flex-col gap-3 sm:flex-row sm:justify-center lg:mt-10 lg:justify-start">
-            <Button href="#zakazivanje" variant="primary" size="lg" className="w-full sm:w-auto" onClick={(e) => go(e, "#zakazivanje")}>
+            <Button id="hero-primary-cta" href="#zakazivanje" variant="primary" size="lg" className="w-full sm:w-auto" onClick={(e) => go(e, "#zakazivanje")}>
               {hero.ctaPrimary}
             </Button>
             <Button href="#cenovnik" variant="secondary" size="lg" className="max-sm:hidden" onClick={(e) => go(e, "#cenovnik")}>
