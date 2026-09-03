@@ -4,6 +4,8 @@ import "./globals.css";
 import { site } from "@/content/site";
 import ConvexClientProvider from "@/components/providers/ConvexClientProvider";
 import SmoothScroll from "@/components/SmoothScroll";
+import TextRevealGlobal from "@/components/motion/TextRevealGlobal";
+import { textRevealHideCss, textRevealHeadScript } from "@/constants/textRevealConfig";
 
 const playfair = Playfair_Display({
   subsets: ["latin", "cyrillic"],
@@ -66,6 +68,12 @@ const jsonLd = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="sr-Cyrl" className={`${playfair.variable} ${manrope.variable} h-full`}>
+      <head>
+        {/* Hide copy before first paint; the runtime reveals it word by word. */}
+        <style dangerouslySetInnerHTML={{ __html: textRevealHideCss() }} />
+        {/* Set the active flag synchronously, with a failsafe if the runtime never boots. */}
+        <script dangerouslySetInnerHTML={{ __html: textRevealHeadScript() }} />
+      </head>
       <body className="min-h-full flex flex-col bg-white text-ink">
         <script
           type="application/ld+json"
@@ -73,6 +81,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
         <ConvexClientProvider>{children}</ConvexClientProvider>
         <SmoothScroll />
+        <TextRevealGlobal />
       </body>
     </html>
   );

@@ -44,6 +44,7 @@ export function buttonClass({
   return [
     "inline-flex items-center justify-center rounded-pill font-semibold whitespace-nowrap select-none",
     "transition-[background-color,color,border-color,transform,box-shadow] duration-250 ease-out",
+    "motion-safe:hover:-translate-y-px motion-safe:active:scale-[0.98]",
     "focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-plum-500",
     "disabled:opacity-60 disabled:pointer-events-none",
     variants[variant],

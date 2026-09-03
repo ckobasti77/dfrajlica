@@ -3,8 +3,10 @@
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
+import { motion, useReducedMotion } from "framer-motion";
 import { api } from "@/convex/_generated/api";
 import { booking, services, site, type ServiceId } from "@/content/site";
+import { RevealGroup, RevealItem } from "@/components/motion/RevealGroup";
 import {
   formStrings as t,
   formatDate,
@@ -162,10 +164,17 @@ function Segmented<V extends string>({
 
 function ErrorText({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
+  // Fade in (opacity/colour), never shake — calm, not alarming.
   return (
-    <p id={id} className={errorClass}>
+    <motion.p
+      id={id}
+      className={errorClass}
+      initial={{ opacity: 0, y: -2 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+    >
       {message}
-    </p>
+    </motion.p>
   );
 }
 
@@ -181,6 +190,7 @@ function BookingFormLive() {
     status: `${baseId}-status`,
   };
   const create = useMutation(api.bookings.create);
+  const reduce = useReducedMotion();
   const [form, setForm] = useState<FormState>(initialState);
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
@@ -254,7 +264,28 @@ function BookingFormLive() {
 
   if (status.kind === "success") {
     return (
-      <div className="text-ink" aria-live="polite">
+      <motion.div
+        className="text-ink"
+        aria-live="polite"
+        data-reveal="off"
+        initial={reduce ? false : { opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: reduce ? 0 : 0.4, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <span className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-plum-100 text-plum-700">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <motion.path
+              d="M5 12.5l4 4 10-10"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={reduce ? false : { pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: reduce ? 0 : 0.5, ease: "easeOut", delay: reduce ? 0 : 0.15 }}
+            />
+          </svg>
+        </span>
         <h3 className="font-serif text-2xl text-plum-700 sm:text-3xl">{t.success.title}</h3>
         <p className="mt-3 text-base text-ink/80">{t.success.text(site.phone.primary.display)}</p>
         <p className="mt-6 mb-3 text-sm font-medium text-ink">{t.success.quickTitle}</p>
@@ -266,7 +297,7 @@ function BookingFormLive() {
         >
           {t.success.reset}
         </button>
-      </div>
+      </motion.div>
     );
   }
 
@@ -276,10 +307,11 @@ function BookingFormLive() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="relative text-ink" aria-busy={pending}>
-      <fieldset disabled={disabled} className="min-w-0 space-y-5">
+      <fieldset disabled={disabled} className="min-w-0">
         <legend className="sr-only">{t.legend}</legend>
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <RevealGroup as="div" stagger={0.06} className="space-y-5">
+        <RevealItem className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor={ids.name} className={labelClass}>
               {t.name}
@@ -323,9 +355,9 @@ function BookingFormLive() {
             />
             <ErrorText id={`${ids.phone}-err`} message={visibleError("phone")} />
           </div>
-        </div>
+        </RevealItem>
 
-        <div>
+        <RevealItem>
           <label htmlFor={ids.service} className={labelClass}>
             {t.service}
           </label>
@@ -351,19 +383,21 @@ function BookingFormLive() {
             ))}
           </select>
           <ErrorText id={`${ids.service}-err`} message={visibleError("serviceId")} />
-        </div>
+        </RevealItem>
 
         {showStaff && (
-          <Segmented
-            name="staff"
-            label={t.staff}
-            options={staffOptions}
-            value={form.staff}
-            onChange={(v) => set("staff", v)}
-          />
+          <RevealItem>
+            <Segmented
+              name="staff"
+              label={t.staff}
+              options={staffOptions}
+              value={form.staff}
+              onChange={(v) => set("staff", v)}
+            />
+          </RevealItem>
         )}
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <RevealItem className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor={ids.date} className={labelClass}>
               {t.date}
@@ -391,9 +425,9 @@ function BookingFormLive() {
             value={form.timeSlot}
             onChange={(v) => set("timeSlot", v)}
           />
-        </div>
+        </RevealItem>
 
-        <div>
+        <RevealItem>
           <div className="mb-1.5 flex items-baseline justify-between">
             <label htmlFor={ids.note} className="text-sm font-medium text-ink">
               {t.note}
@@ -416,7 +450,7 @@ function BookingFormLive() {
             className={`${inputClass} h-auto min-h-24 resize-y py-3`}
           />
           <ErrorText id={`${ids.note}-err`} message={visibleError("note")} />
-        </div>
+        </RevealItem>
 
         {/* Honeypot — invisible to people, tempting to bots */}
         <div className="absolute -left-[9999px] top-0 h-px w-px overflow-hidden" aria-hidden="true">
@@ -432,12 +466,13 @@ function BookingFormLive() {
           />
         </div>
 
-        <div className="space-y-3 pt-1">
+        <RevealItem className="space-y-3 pt-1">
           <button type="submit" className={primaryButtonClass} disabled={disabled}>
             {pending ? t.submitting : t.submit}
           </button>
           <p className="text-center text-xs text-ink/60">{t.privacy}</p>
-        </div>
+        </RevealItem>
+        </RevealGroup>
       </fieldset>
 
       <div id={ids.status} aria-live="polite" className="sr-only">
